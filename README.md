@@ -18,6 +18,8 @@ So, there's like, a lot of stuff you need to install for this.
 
 Shocking, I know. There's also the very short list of packages you need, which you can install with `pip3 install py-cord mysql-connector-python dotenv Pillow`
 
+Anyway, after you do that, you just need to copy `.env.template` to `.env` and look inside. You'll know what to do.
+
 I *THINK* that's all you need, but I probably missed something.
 
 ## FAQ
