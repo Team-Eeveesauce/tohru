@@ -16,7 +16,7 @@ So, unless you run Tohru on a Linux system and also have a Windows system that y
 So, there's like, a lot of stuff you need to install for this.
   * Python 3
 
-Shocking, I know. There's also the very short list of packages you need, which you can install with `pip3 install py-cord mysql-connector-python dotenv Pillow`
+Shocking, I know. There's also the very short list of packages you need, which you can install with `pip3 install py-cord mysql-connector-python dotenv Pillow pymagick`
 
 Anyway, after you do that, you just need to copy `.env.template` to `.env` and look inside. You'll know what to do.
 

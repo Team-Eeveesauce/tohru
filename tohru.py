@@ -13,6 +13,7 @@ from dotenv import load_dotenv
 import os
 import random
 import string
+import pymagick
 import mysql.connector
 from PIL import Image
 from datetime import datetime
@@ -21,6 +22,7 @@ from datetime import datetime
 load_dotenv()
 bot = commands.Bot()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
+GUILD_ID = os.getenv('GUILD_ID')
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
 HOST = os.getenv('HOST')
@@ -40,7 +42,7 @@ mydb = mysql.connector.connect(
 @bot.slash_command(
     name="ping",
     description="Checks if Tohru (the maid) is awake..",
-    guild_ids=[1075360335810269216]
+    guild_ids=[GUILD_ID]
 )
 async def ping(ctx):
     print("Executing ping command.")
@@ -50,7 +52,7 @@ async def ping(ctx):
 @bot.slash_command(
     name="connect",
     description="Checks if Kanna (the friend) is awake.",
-    guild_ids=[1075360335810269216]
+    guild_ids=[GUILD_ID]
 )
 async def connect(ctx):
     print("Executing connection command.")
@@ -63,7 +65,7 @@ async def connect(ctx):
 @bot.slash_command(
     name="mount",
     description="Mounts all drives in case of broken website.",
-    guild_ids=[1075360335810269216]
+    guild_ids=[GUILD_ID]
 )
 async def mount(ctx):
     print("Executing mount command.")
@@ -74,29 +76,40 @@ async def mount(ctx):
 @bot.slash_command(
     name="gaming",
     description="Launches Death Stranding on Josh's computer.",
-    guild_ids=[1075360335810269216]
+    guild_ids=[GUILD_ID]
 )
 async def gaming(ctx):
     print("Executing Death Stranding command.")
     response = sendit(b"gaming")
     await ctx.respond(response)
 
-# Restarts Plex in the likely event of a crash.
+# Restarts Emby in the unlikely event of a crash.
 @bot.slash_command(
-    name="plex",
-    description="Launches Plex in the event of it crashing.",
-    guild_ids=[1075360335810269216]
+    name="emby",
+    description="Launches Emby in the event of it crashing.",
+    guild_ids=[GUILD_ID]
 )
-async def plex(ctx):
-    print("Executing Plex command.")
-    response = sendit(b"plex")
+async def emby(ctx):
+    print("Executing Emby command.")
+    response = sendit(b"emby")
+    await ctx.respond(response)
+
+# Downloads new videos from AstralSpiff.
+@bot.slash_command(
+    name="download_spigg",
+    description="Attempts to download any new AstralSpiff videos into the archives.",
+    guild_ids=[GUILD_ID]
+)
+async def download_spigg(ctx):
+    print("Executing YT-DLP (spigg) command.")
+    response = sendit(b"download_spigg")
     await ctx.respond(response)
 
 # Restarts the bot. Ends early so it looks nice on the Discord-side of things.
 @bot.slash_command(
     name="restart",
     description="Restarts Tohru to reload any changes.",
-    guild_ids=[1075360335810269216]
+    guild_ids=[GUILD_ID]
 )
 async def restart(ctx):
     print("Restarting bot...")
@@ -107,7 +120,7 @@ async def restart(ctx):
 @bot.slash_command(
     name="upload",
     description="Upload a horribly compressed image with a caption",
-    guild_ids=[1075360335810269216]
+    guild_ids=[GUILD_ID]
     )
 async def upload(
     ctx: discord.ApplicationContext, 
@@ -125,26 +138,30 @@ async def upload(
         # Generate 4 random characters
         random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
 
-        filename = f"{timestamp}_{image.filename}_{random_suffix}" 
+        filename = f"{timestamp}_{random_suffix}_{image.filename}" 
         saved_path = f"uploads/{filename}"
         jpeg_path = f"uploads/{filename}.jpg"
         await image.save(saved_path)
         print("Image saved!")
 
         # Compress the image
+        img = Image.open(saved_path)
         try:
-            img = Image.open(saved_path)
-            img.save(jpeg_path, format='JPEG', quality=1)
-            print("Image compressed...")
+            from wand.image import Image as MagickImage
+            with MagickImage(filename=saved_path) as magick_img:
+                magick_img.format = 'jpeg'
+                magick_img.compression_quality = 1  # Adjust quality as needed
+                magick_img.save(filename=jpeg_path)
+            print("Image compressed using PyMagick!")
         except Exception as e:
-            await ctx.respond(f"Something went wrong compressing the image: {e}")
+            await ctx.edit(f"Something went wrong compressing the image: {e}")
             print(f"Image NOT compressed! {e}")
             return  # End command execution if compression failed
 
         # Store image info in the database
         cursor = mydb.cursor()
-        sql = "INSERT INTO images (image_path, caption, submitter_id) VALUES (%s, %s, %s)"
-        val = (saved_path, caption, ctx.author.id)  
+        sql = "INSERT INTO images (image_path, original_path, caption, submitter_id) VALUES (%s, %s, %s, %s)"
+        val = (jpeg_path, saved_path, caption, ctx.author.id)  
         cursor.execute(sql, val)
         mydb.commit()
 
@@ -154,6 +171,73 @@ async def upload(
     except Exception as e:
         print(f"Oh god, what now... {e}?!")
         await ctx.edit(content=f"Uh oh, something went wrong: {e}. Please try again.")
+
+# Image retrieval fun
+@bot.slash_command(
+    name="fetch",
+    description="Retrieve a previously uploaded image",
+    guild_ids=[GUILD_ID]
+)
+async def fetch(
+    ctx: discord.ApplicationContext,
+    image_id: Option(int, "Specific image ID (set as 0 for random)", required=True),
+    uncompressed: Option(bool, "Send the uncompressed version of the image?", default=False)
+):
+    try:
+        # Connect to database
+        cursor = mydb.cursor()
+
+        if not image_id == 0: # If they asked for an image, give it to 'em.
+            # Get image details
+            if uncompressed:
+                sql = "SELECT original_path, caption FROM images WHERE id = %s"
+            else:
+                sql = "SELECT image_path, caption FROM images WHERE id = %s"
+            val = (image_id,)
+            cursor.execute(sql, val)
+
+            # Check if image exists
+            result = cursor.fetchone()
+            if not result:
+                return await ctx.respond(f"Image with ID {image_id} not found!")
+
+            image_path, caption = result
+            print(f"Retrieved image path from DB: {image_path}")
+
+        else: # Otherwise, get a random image.
+            # Count total images
+            sql = "SELECT COUNT(*) FROM images"
+            cursor.execute(sql)
+            total_images = cursor.fetchone()[0]
+
+            if not total_images:
+                return await ctx.respond("No images found in the archive!")
+
+            # Generate random number within image count
+            random_id = random.randint(1, total_images)
+
+            # Get image path for the random ID
+            if uncompressed:
+                sql = "SELECT original_path, caption FROM images WHERE id = %s"
+            else:
+                sql = "SELECT image_path, caption FROM images WHERE id = %s"
+            val = (random_id,)
+            cursor.execute(sql, val)
+            result = cursor.fetchone()
+            image_path, caption = result
+            print(f"Retrieved random image path from DB: {image_path}")
+
+        # Send image
+        if caption:
+            await ctx.respond(content=caption,file=discord.File(image_path))
+        else:
+            await ctx.respond(content="Here you go, boss!",file=discord.File(image_path))
+        print(f"Image ID {image_id} sent successfully!")
+
+    except Exception as e:
+        print(f"Error retrieving image: {e}")
+        await ctx.respond(f"Uh oh, something went wrong: {e}")
+
 
 
 # Define special commands

@@ -37,8 +37,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 reply = b"ok"
             elif data.decode() == 'gaming':
                 reply = runme("\"C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe\"")
-            elif data.decode() == 'plex':
-                reply = runme("\"C:\\Program Files\\Plex\\Plex Media Server\\Plex Media Server.exe\"")
+            elif data.decode() == 'emby':
+                reply = runme("\"E:\\Streamable - The Return\\Emby-Server\\system\\EmbyServer.exe\"")
+            elif data.decode() == 'download_spigg':
+                conn.sendall(b"no")
             elif data.decode() == 'restart':
                 conn.sendall(b"no")
             else:
