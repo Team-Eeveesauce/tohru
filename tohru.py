@@ -165,7 +165,12 @@ async def upload(
         cursor.execute(sql, val)
         mydb.commit()
 
-        await ctx.edit(content="Image is now safe in the archives!")
+        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
+        sql = "SELECT COUNT(*) FROM images"
+        cursor.execute(sql)
+        upload_id = cursor.fetchone()[0]
+
+        await ctx.edit(content=f"Image is now safe in the archives! ID: {upload_id}")
         print("HOLY BALLS WE DID IT")
 
     except Exception as e:
