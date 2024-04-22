@@ -1,5 +1,11 @@
+# for everything
+import os
+import random
+import string
+from dotenv import load_dotenv
+
 # for connection to discord
-import discord
+import discord  # pip install pycord
 from discord.ext import commands
 from discord import Option
 
@@ -9,13 +15,8 @@ import socket
 import time
 
 # for image upload stuff
-from dotenv import load_dotenv
-import os
-import random
-import string
 import pymagick
 import mysql.connector
-from PIL import Image
 from datetime import datetime
 
 # Define stuff.
@@ -30,36 +31,7 @@ PORT = 10524
 TIMEOUT = 5
 
 
-# Database Connection Setup
-mydb = mysql.connector.connect(
-    host = os.getenv('DB_HOST'),
-    user = os.getenv('DB_USER'),
-    password = os.getenv('DB_PASSWORD'),
-    database = os.getenv('DB_NAME')
-)
-
-# Check if we're live.
-@bot.slash_command(
-    name="ping",
-    description="Checks if Tohru (the maid) is awake..",
-    guild_ids=[GUILD_ID]
-)
-async def ping(ctx):
-    print("Executing ping command.")
-    await ctx.respond("Ping pong! I'm still alive!")
-
-# Connection test to SAUCEY-PC.
-@bot.slash_command(
-    name="connect",
-    description="Checks if Kanna (the friend) is awake.",
-    guild_ids=[GUILD_ID]
-)
-async def connect(ctx):
-    print("Executing connection command.")
-    await ctx.defer()
-    response = sendit(b"connect")
-    print(response)
-    await ctx.respond(response)
+# Define all the commands:
 
 # Mount the drives that Ubuntu is too scared to.
 @bot.slash_command(
@@ -68,8 +40,19 @@ async def connect(ctx):
     guild_ids=[GUILD_ID]
 )
 async def mount(ctx):
-    print("Executing mount command.")
+    print("Executing mount command...")
     response = runme("sudo mount -a")
+    await ctx.respond(response)
+
+# Restart szurubooru because it sucks.
+@bot.slash_command(
+    name="debug",
+    description="Runs the debug script that you probably don't need to run.",
+    guild_ids=[GUILD_ID]
+)
+async def debug(ctx):
+    print("Running debug script.")
+    response = runme("./scripts/dragonmaid_debug.sh")
     await ctx.respond(response)
 
 # Instantly opens Death Stranding on the SAUCEY-PC.
@@ -83,17 +66,6 @@ async def gaming(ctx):
     response = sendit(b"gaming")
     await ctx.respond(response)
 
-# Restarts Emby in the unlikely event of a crash.
-@bot.slash_command(
-    name="emby",
-    description="Launches Emby in the event of it crashing.",
-    guild_ids=[GUILD_ID]
-)
-async def emby(ctx):
-    print("Executing Emby command.")
-    response = sendit(b"emby")
-    await ctx.respond(response)
-
 # Downloads new videos from AstralSpiff.
 @bot.slash_command(
     name="download_spigg",
@@ -105,27 +77,88 @@ async def download_spigg(ctx):
     response = sendit(b"download_spigg")
     await ctx.respond(response)
 
-# Restarts the bot. Ends early so it looks nice on the Discord-side of things.
-@bot.slash_command(
+
+# Commands that ping stuff.
+ping = bot.create_group(
+    name="ping",
+    description="Commands relating to the pinging of services."
+)
+
+# Check if we're live.
+@ping.command(
+    name="tohru",
+    description="Checks if this bot is awake."
+)
+async def ping_tohru(ctx):
+    print("Executing ping command.")
+    await ctx.respond("Ping pong! I'm still alive!")
+
+# Connection test to SAUCEY-PC.
+@ping.command(
+    name="kanna",
+    description="Checks if the helper service is awake."
+)
+async def ping_kanna(ctx):
+    print("Executing connection command.")
+    await ctx.defer()
+    response = sendit(b"connect")
+    print(response)
+    await ctx.respond(response)
+
+
+# Commands that restart stuff.
+restart = bot.create_group(
     name="restart",
-    description="Restarts Tohru to reload any changes.",
+    description="Commands relating to the restarting of services.",
     guild_ids=[GUILD_ID]
 )
-async def restart(ctx):
+
+# Restarts the bot. Ends early so it looks nice on the Discord-side of things.
+@restart.command(
+    name="bot",
+    description="Restarts Tohru to reload any changes."
+)
+async def restart_bot(ctx):
     print("Restarting bot...")
     await ctx.respond("Restarting Tohru...")
     response = runme("sudo supervisorctl restart tohru")
 
-# image upload fun
-@bot.slash_command(
+# Restarts Emby in the unlikely event of a crash.
+@restart.command(
+    name="emby",
+    description="Launches Emby in the event of it crashing."
+)
+async def restart_emby(ctx):
+    print("Executing Emby command.")
+    response = sendit(b"emby")
+    await ctx.respond(response)
+
+# Restart szurubooru because it sucks.
+@restart.command(
+    name="szurubooru",
+    description="Restarts szurubooru after a power failure."
+)
+async def restart_szurubooru(ctx):
+    print("Restarting szurubooru...")
+    response = runme("scripts/mountbooru.sh")
+    await ctx.respond(response)
+
+
+# Commands involving the archives system.
+archives = bot.create_group(
+    name="archives",
+    description="Commands relating to the use of the Archives feature."
+)
+
+# Image upload fun
+@archives.command(
     name="upload",
-    description="Upload a horribly compressed image with a caption",
-    guild_ids=[GUILD_ID]
-    )
-async def upload(
+    description="Upload a horribly compressed image with a caption"
+)
+async def archives_upload(
     ctx: discord.ApplicationContext, 
     image: Option(discord.Attachment, "Choose an image to upload", required=True),
-    caption: Option(str, "Add a caption (optional)", required=False) = "No caption provided"
+    caption: Option(str, "Add a caption (optional)", required=False) = ""
 ):
     print("Upload command called!")
     await ctx.respond("Archiving image...")
@@ -145,12 +178,11 @@ async def upload(
         print("Image saved!")
 
         # Compress the image
-        img = Image.open(saved_path)
         try:
             from wand.image import Image as MagickImage
             with MagickImage(filename=saved_path) as magick_img:
                 magick_img.format = 'jpeg'
-                magick_img.compression_quality = 1  # Adjust quality as needed
+                magick_img.compression_quality = 2  # Adjust quality as needed
                 magick_img.save(filename=jpeg_path)
             print("Image compressed using PyMagick!")
         except Exception as e:
@@ -158,8 +190,15 @@ async def upload(
             print(f"Image NOT compressed! {e}")
             return  # End command execution if compression failed
 
+        # Connect to database.
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
         # Store image info in the database
-        cursor = mydb.cursor()
         sql = "INSERT INTO images (image_path, original_path, caption, submitter_id) VALUES (%s, %s, %s, %s)"
         val = (jpeg_path, saved_path, caption, ctx.author.id)  
         cursor.execute(sql, val)
@@ -169,47 +208,41 @@ async def upload(
         sql = "SELECT COUNT(*) FROM images"
         cursor.execute(sql)
         upload_id = cursor.fetchone()[0]
-
-        await ctx.edit(content=f"Image is now safe in the archives! ID: {upload_id}")
+        cursor.close()
         print("HOLY BALLS WE DID IT")
+        
+        # Send image
+        if caption:
+            await ctx.respond(content=f"Image is now safe in the archives! ID: {upload_id}\n> {caption}",file=discord.File(jpeg_path))
+        else:
+            await ctx.respond(content=f"Image is now safe in the archives! ID: {upload_id}",file=discord.File(jpeg_path))
+        print(f"Image ID {upload_id} sent successfully!")
 
     except Exception as e:
         print(f"Oh god, what now... {e}?!")
         await ctx.edit(content=f"Uh oh, something went wrong: {e}. Please try again.")
+        cursor.close()
 
 # Image retrieval fun
-@bot.slash_command(
+@archives.command(
     name="fetch",
-    description="Retrieve a previously uploaded image",
-    guild_ids=[GUILD_ID]
+    description="Retrieve a previously uploaded image"
 )
-async def fetch(
+async def archives_fetch(
     ctx: discord.ApplicationContext,
     image_id: Option(int, "Specific image ID (set as 0 for random)", required=True),
     uncompressed: Option(bool, "Send the uncompressed version of the image?", default=False)
 ):
     try:
         # Connect to database
-        cursor = mydb.cursor()
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
 
-        if not image_id == 0: # If they asked for an image, give it to 'em.
-            # Get image details
-            if uncompressed:
-                sql = "SELECT original_path, caption FROM images WHERE id = %s"
-            else:
-                sql = "SELECT image_path, caption FROM images WHERE id = %s"
-            val = (image_id,)
-            cursor.execute(sql, val)
-
-            # Check if image exists
-            result = cursor.fetchone()
-            if not result:
-                return await ctx.respond(f"Image with ID {image_id} not found!")
-
-            image_path, caption = result
-            print(f"Retrieved image path from DB: {image_path}")
-
-        else: # Otherwise, get a random image.
+        if image_id == 0: # If they asked for a random image.
             # Count total images
             sql = "SELECT COUNT(*) FROM images"
             cursor.execute(sql)
@@ -219,33 +252,175 @@ async def fetch(
                 return await ctx.respond("No images found in the archive!")
 
             # Generate random number within image count
-            random_id = random.randint(1, total_images)
+            image_id = random.randint(1, total_images)
 
-            # Get image path for the random ID
-            if uncompressed:
-                sql = "SELECT original_path, caption FROM images WHERE id = %s"
-            else:
-                sql = "SELECT image_path, caption FROM images WHERE id = %s"
-            val = (random_id,)
-            cursor.execute(sql, val)
-            result = cursor.fetchone()
-            image_path, caption = result
-            print(f"Retrieved random image path from DB: {image_path}")
+        # Get image details
+        if uncompressed:
+            sql = "SELECT original_path, caption FROM images WHERE id = %s"
+        else:
+            sql = "SELECT image_path, caption FROM images WHERE id = %s"
+        val = (image_id,)
+        cursor.execute(sql, val)
+
+        # Check if image exists
+        result = cursor.fetchone()
+        if not result:
+            return await ctx.respond(f"Image with ID {image_id} not found!")
+
+        image_path, caption = result
+        print(f"Retrieved image path from DB: {image_path}")
 
         # Send image
         if caption:
-            await ctx.respond(content=caption,file=discord.File(image_path))
+            await ctx.respond(content=f"Here you go, boss! (ID: {image_id})\n> {caption}",file=discord.File(image_path))
         else:
-            await ctx.respond(content="Here you go, boss!",file=discord.File(image_path))
+            await ctx.respond(content=f"Here you go, boss! (ID: {image_id})",file=discord.File(image_path))
         print(f"Image ID {image_id} sent successfully!")
+        cursor.close()
 
     except Exception as e:
         print(f"Error retrieving image: {e}")
         await ctx.respond(f"Uh oh, something went wrong: {e}")
+        cursor.close()
+
+
+# Commands involving the tips system.
+tips = bot.create_group(
+    name="tip",
+    description="Loading screen tips! Or quotes! Both!!"
+)
+
+# Tip submission fun
+@tips.command(
+    name="submit",
+    description="Submit a loading screen tip or quote here."
+)
+async def tips_submit(
+    ctx: discord.ApplicationContext,
+    type: Option(str, "Whatever type of submission you're looking to make.", choices=['Tip', 'Quote'], required=True),
+    content: Option(str, "Type your submission here.", required=True),
+    author: Option(str, "Whoever said the quote.", required=False, default="Anonymous")
+):
+    print("Tip submission command called!")
+
+    # Figure out which table we're gonna use.
+    if type == "Tip":
+        db = "tips"
+    else:
+        db = "quotes"
+
+    try:
+        # Connect to database.
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Store tip in the database
+        sql = f"INSERT INTO {db} (content, author, submitter_id) VALUES (%s, %s, %s)"
+        val = (content, author, ctx.author.id)
+        cursor.execute(sql, val)
+        mydb.commit()
+
+        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
+        sql = f"SELECT COUNT(*) FROM {db}"
+        cursor.execute(sql)
+        id = cursor.fetchone()[0]
+        cursor.close()
+        print("HOLY BALLS WE DID IT")
+
+        if type == "Tip":
+            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> `{content}`")
+        else:
+            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *`\"{content}\" - {author}`*")
+
+        print(f"Tip {id} submitted successfully!")
+
+    except Exception as e:
+        print(f"Oh, fiddlesticks! What now... {e}?!")
+        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
+        cursor.close()
+
+# Tip retrieval fun
+@tips.command(
+    name="roll",
+    description="Roll for a random loading screen tip, or request one via ID."
+)
+async def tips_roll(
+    ctx: discord.ApplicationContext,
+    type: Option(str, "What type of submissiion you're looking for.", choices=['Tip', 'Quote'], required=True),
+    id: Option(int, "Specific submission ID (leave blank for random)", required=False, default=0)
+):
+    print("Tip retrieval command called!")
+
+    # Figure out which table we're gonna use.
+    if type == "Tip":
+        db = "tips"
+    else:
+        db = "quotes"
+
+    try:
+        # Connect to database
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        if id == 0: # If they asked for a random tip.
+            # Count total submissions
+            sql = f"SELECT COUNT(*) FROM {db}"
+            cursor.execute(sql)
+            total_submissions = cursor.fetchone()[0]
+
+            # Generate random number within submission count
+            id = random.randint(1, total_submissions)
+
+        # Get submission
+        sql = f"SELECT content, author FROM {db} WHERE id = {id}"
+        cursor.execute(sql)
+
+        # Check if submission exists
+        content, author = cursor.fetchone()
+        if not content:
+            return await ctx.respond(f"Submission with ID {id} not found!")
+
+        # Send image
+        
+        if db == tips:
+            await ctx.respond(content=f"> `{content}`")
+        else:
+            await ctx.respond(content=f"> *`\"{content}\" - {author}`*")
+        print(f"Submission ID {id} sent successfully!")
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error retrieving submission: {e}")
+        await ctx.respond(f"Uh oh, something went wrong: {e}")
+        cursor.close()
 
 
 
 # Define special commands
+
+# Database Connection Setup
+def reconnect_to_db():
+  global mydb  # Use global keyword to modify the global variable
+
+  try:
+    mydb = mysql.connector.connect(
+        host=os.getenv('DB_HOST'),
+        user=os.getenv('DB_USER'),
+        password=os.getenv('DB_PASSWORD'),
+        database=os.getenv('DB_NAME')
+    )
+  except mysql.connector.Error as err:
+    print(f"Error connecting to database: {err}")
+
+# Run a command on this machine.
 def runme(command):
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
@@ -259,6 +434,7 @@ def runme(command):
         print(result.stdout)
         return("Command run successfully!")
 
+# Tell Kanna to run a command on the other machine.
 def sendit(command):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
@@ -272,7 +448,7 @@ def sendit(command):
             elif data.decode() == "bad":
                 return("Command not found! Server is out of date!")
             elif data.decode() == "no":
-                return("Command refused!")
+                return("Command refused! Maybe it's not implemented yet?")
             else:
                 return("Command failed!")
 
@@ -283,5 +459,6 @@ def sendit(command):
 
 
 # And now we run it!
+reconnect_to_db()
 print("Bot running!")
 bot.run(BOT_TOKEN)

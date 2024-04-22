@@ -34,15 +34,22 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 
             # Message Handling Logic
             if data.decode() == 'connect':
+                print("Was pinged! Sent a reply.")
                 reply = b"ok"
             elif data.decode() == 'gaming':
-                reply = runme("\"C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe\"")
+                print("Opening Epic Launcher...")
+                # reply = runme("\"C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe\"")
+                print("... Nah, nevermind.")
+                conn.sendall(b"no")
             elif data.decode() == 'emby':
+                print("Restarting Emby... Probably.")
                 reply = runme("\"E:\\Streamable - The Return\\Emby-Server\\system\\EmbyServer.exe\"")
             elif data.decode() == 'download_spigg':
                 conn.sendall(b"no")
+                print("Downloading spigg... OR NOT!!")
             elif data.decode() == 'restart':
                 conn.sendall(b"no")
+                print("Restarting bot... OR NOT!!")
             else:
                 reply = b"bad"
                 print("Command failed!")
