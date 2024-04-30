@@ -26,8 +26,8 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 GUILD_ID = os.getenv('GUILD_ID')
 intents = discord.Intents.default()
 client = discord.Client(intents=intents)
-HOST = os.getenv('HOST')
-PORT = 10524
+KANNA_IP = os.getenv('KANNA_IP')
+PORT = os.getenv('PORT')
 TIMEOUT = 5
 
 
@@ -439,7 +439,7 @@ def sendit(command):
     try:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(TIMEOUT)
-            s.connect((HOST, PORT))
+            s.connect((KANNA_IP, PORT))
             s.sendall(command)
             data = s.recv(1024)
             print(f"Received: {data.decode()}")

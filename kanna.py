@@ -1,9 +1,11 @@
 import socket
 import subprocess
+from dotenv import load_dotenv
 
 #Define variables
-HOST = '10.10.0.195'
-PORT = 10524
+load_dotenv()
+TOHRU_IP = os.getenv('TOHRU_IP')
+PORT = os.getenv('PORT')
 
 # Define special commands
 def runme(command):
@@ -17,7 +19,7 @@ def runme(command):
 
 # Main loop
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((HOST, PORT))
+    s.bind((TOHRU_IP, PORT))
     s.listen()
     print("Kanna active!")
 
