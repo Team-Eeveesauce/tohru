@@ -24,8 +24,6 @@ load_dotenv()
 bot = commands.Bot()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 GUILD_ID = os.getenv('GUILD_ID')
-intents = discord.Intents.default()
-client = discord.Client(intents=intents)
 KANNA_IP = os.getenv('KANNA_IP')
 PORT = os.getenv('PORT')
 TIMEOUT = 5
@@ -200,7 +198,7 @@ async def archives_upload(
 
         # Store image info in the database
         sql = "INSERT INTO images (image_path, original_path, caption, submitter_id) VALUES (%s, %s, %s, %s)"
-        val = (jpeg_path, saved_path, caption, ctx.author.id)  
+        val = (jpeg_path, saved_path, caption.replace("'", "\\'"), ctx.author.id)  
         cursor.execute(sql, val)
         mydb.commit()
 
@@ -320,7 +318,7 @@ async def tips_submit(
 
         # Store tip in the database
         sql = f"INSERT INTO {db} (content, author, submitter_id) VALUES (%s, %s, %s)"
-        val = (content, author, ctx.author.id)
+        val = (content.replace("'", "\\'"), author, ctx.author.id)  # Escape single quotes
         cursor.execute(sql, val)
         mydb.commit()
 

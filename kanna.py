@@ -1,11 +1,11 @@
 import socket
 import subprocess
+import os
 from dotenv import load_dotenv
 
-#Define variables
+# Define singular variable
 load_dotenv()
-TOHRU_IP = os.getenv('TOHRU_IP')
-PORT = os.getenv('PORT')
+PORT = int(os.getenv('PORT'))
 
 # Define special commands
 def runme(command):
@@ -19,7 +19,7 @@ def runme(command):
 
 # Main loop
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind((TOHRU_IP, PORT))
+    s.bind(("0.0.0.0", PORT))
     s.listen()
     print("Kanna active!")
 
@@ -38,11 +38,10 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             if data.decode() == 'connect':
                 print("Was pinged! Sent a reply.")
                 reply = b"ok"
-            elif data.decode() == 'gaming':
-                print("Opening Epic Launcher...")
-                # reply = runme("\"C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe\"")
-                print("... Nah, nevermind.")
-                conn.sendall(b"no")
+            # elif data.decode() == 'gaming':
+            #     print("Opening Epic Launcher...")
+            #     reply = runme("\"C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe\"")
+            #     conn.sendall(b"ok")
             elif data.decode() == 'emby':
                 print("Restarting Emby... Probably.")
                 reply = runme("\"E:\\Streamable - The Return\\Emby-Server\\system\\EmbyServer.exe\"")
