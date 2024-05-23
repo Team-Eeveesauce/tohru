@@ -19,13 +19,17 @@ import pymagick
 import mysql.connector
 from datetime import datetime
 
+# Intents because we need them apparently
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(intents=intents)
+
 # Define stuff.
 load_dotenv()
-bot = commands.Bot()
 BOT_TOKEN = os.getenv('BOT_TOKEN')
 GUILD_ID = os.getenv('GUILD_ID')
 KANNA_IP = os.getenv('KANNA_IP')
-PORT = os.getenv('PORT')
+PORT = int(os.getenv('PORT'))
 TIMEOUT = 5
 
 
@@ -80,6 +84,8 @@ async def download_spigg(ctx):
 ping = bot.create_group(
     name="ping",
     description="Commands relating to the pinging of services."
+#    integration_types=["GUILD_INSTALL", "USER_INSTALL"],
+#    contexts=["GUILD","BOT_DM","PRIVATE_CHANNEL"]
 )
 
 # Check if we're live.
@@ -400,6 +406,30 @@ async def tips_roll(
         await ctx.respond(f"Uh oh, something went wrong: {e}")
         cursor.close()
 
+# MR ELECTRIC SEND HIM TO THE PRINCIPALS OFFICE AND HAVE HIM EXPELLED!!!
+@bot.event
+async def on_message(message):
+    # If the bot posted it, we don't need it to respond to itself.
+    if message.author == bot.user:
+        return
+
+    msg = message.content.lower()
+
+    if str(bot.user.id) in msg:
+        if 'kill' in msg or 'murder' in msg:
+            if 'me' in msg:
+                responses = ["Hey, please take your own health seriously. :heart:", "Later. :knife:"]
+                await message.channel.send(random.choice(responses))
+                return
+            if 'yourself' in msg:
+                await message.channel.send('Well that\'s not very nice...')
+                return
+            await message.channel.send('You want me to *kill someone*?!... Okay! :knife:')
+            return
+
+        if 'thanks' in msg:
+            await message.channel.send('You\'re welcome! :smiling_face_with_3_hearts:')
+            return
 
 
 # Define special commands
