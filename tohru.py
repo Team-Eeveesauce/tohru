@@ -125,6 +125,8 @@ restart = bot.create_group(
 async def restart_bot(ctx):
     print("Restarting bot...")
     await ctx.respond("Restarting Tohru...")
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
+    await bot.close()
     response = runme("sudo supervisorctl restart tohru")
 
 # Restarts Emby in the unlikely event of a crash.
@@ -165,7 +167,7 @@ async def archives_upload(
     caption: Option(str, "Add a caption (optional)", required=False) = ""
 ):
     print("Upload command called!")
-    await ctx.respond("Archiving image...")
+    await ctx.defer(ephemeral=True)
     print("Responded in time! AS ALWAYS, DISCORD!!")
 
     try:
@@ -190,7 +192,7 @@ async def archives_upload(
                 magick_img.save(filename=jpeg_path)
             print("Image compressed using PyMagick!")
         except Exception as e:
-            await ctx.edit(f"Something went wrong compressing the image: {e}")
+            await ctx.respond(f"Something went wrong compressing the image: {e}")
             print(f"Image NOT compressed! {e}")
             return  # End command execution if compression failed
 
@@ -224,7 +226,7 @@ async def archives_upload(
 
     except Exception as e:
         print(f"Oh god, what now... {e}?!")
-        await ctx.edit(content=f"Uh oh, something went wrong: {e}. Please try again.")
+        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
         cursor.close()
 
 # Image retrieval fun
@@ -324,7 +326,7 @@ async def tips_submit(
 
         # Store tip in the database
         sql = f"INSERT INTO {db} (content, author, submitter_id) VALUES (%s, %s, %s)"
-        val = (content.replace("'", "\\'"), author, ctx.author.id)  # Escape single quotes
+        val = (content.replace("'", "\\'"), author.replace("'", "\\'"), ctx.author.id)  # Escape single quotes
         cursor.execute(sql, val)
         mydb.commit()
 
@@ -336,15 +338,15 @@ async def tips_submit(
         print("HOLY BALLS WE DID IT")
 
         if type == "Tip":
-            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> `{content}`")
+            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> `{content}`", ephemeral=True)
         else:
-            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *`\"{content}\" - {author}`*")
+            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *`\"{content}\" - {author}`*", ephemeral=True)
 
         print(f"Tip {id} submitted successfully!")
 
     except Exception as e:
         print(f"Oh, fiddlesticks! What now... {e}?!")
-        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
+        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
         cursor.close()
 
 # Tip retrieval fun
@@ -354,7 +356,7 @@ async def tips_submit(
 )
 async def tips_roll(
     ctx: discord.ApplicationContext,
-    type: Option(str, "What type of submissiion you're looking for.", choices=['Tip', 'Quote'], required=True),
+    type: Option(str, "What type of submission you're looking for.", choices=['Tip', 'Quote'], required=True),
     id: Option(int, "Specific submission ID (leave blank for random)", required=False, default=0)
 ):
     print("Tip retrieval command called!")
@@ -393,7 +395,6 @@ async def tips_roll(
             return await ctx.respond(f"Submission with ID {id} not found!")
 
         # Send image
-        
         if db == tips:
             await ctx.respond(content=f"> `{content}`")
         else:
@@ -406,47 +407,144 @@ async def tips_roll(
         await ctx.respond(f"Uh oh, something went wrong: {e}")
         cursor.close()
 
-# MR ELECTRIC SEND HIM TO THE PRINCIPALS OFFICE AND HAVE HIM EXPELLED!!!
-@bot.event
-async def on_message(message):
-    # If the bot posted it, we don't need it to respond to itself.
-    if message.author == bot.user:
-        return
 
-    msg = message.content.lower()
+# Commands involving the stuffpile.
+stuff = bot.create_group(
+    name="stuff",
+    description="Commands relating to the use of the stuffpile.",
+    guild_ids=[GUILD_ID]
+)
 
-    if str(bot.user.id) in msg:
-        if 'kill' in msg or 'murder' in msg:
-            if 'me' in msg:
-                responses = ["Hey, please take your own health seriously. :heart:", "Later. :knife:"]
-                await message.channel.send(random.choice(responses))
-                return
-            if 'yourself' in msg:
-                await message.channel.send('Well that\'s not very nice...')
-                return
-            await message.channel.send('You want me to *kill someone*?!... Okay! :knife:')
-            return
+# Stuff submission fun
+@stuff.command(
+    name="submit",
+    description="Submit something to the stuffpile."
+)
+async def stuff_submit(
+    ctx: discord.ApplicationContext,
+    type: Option(str, "The type of submission you're making.", choices=['Person', 'Place', 'Thing'], required=True),
+    name: Option(str, "The name of your submission here.", required=True),
+    image: Option(discord.Attachment, "An image of your submission.", required=True),
+    description: Option(str, "A detailed description of your submission.", required=False, default="No description provided."),
+    fact: Option(str, "A fun fact about your submission.", required=False)
+):
+    print("Stuff submission command called!")
+    await ctx.defer(ephemeral=True)
 
-        if 'thanks' in msg:
-            await message.channel.send('You\'re welcome! :smiling_face_with_3_hearts:')
-            return
+    try:
+        # Connect to database.
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Save the image.
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
+        filename = f"thing_{timestamp}_{random_suffix}_{image.filename}" 
+        saved_path = f"uploads/{filename}"
+        jpeg_path = f"uploads/{filename}.jpg"
+        await image.save(saved_path)
+        print("Image saved!")
+
+        # Compress the image
+        try:
+            from wand.image import Image as MagickImage
+            with MagickImage(filename=saved_path) as magick_img:
+                magick_img.format = 'jpeg'
+                magick_img.compression_quality = 80  # Adjust quality as needed
+                magick_img.save(filename=jpeg_path)
+            print("Image compressed using PyMagick!")
+        except Exception as e:
+            await ctx.edit(f"Something went wrong compressing the image: {e}")
+            print(f"Image NOT compressed! {e}")
+            return  # End command execution if compression failed
+
+        # Store thing in the database
+        sql = f"INSERT INTO stuff (type, name, description, fact, image, submitter_id) VALUES (%s, %s, %s, %s, %s, %s)"
+        val = (type, name.replace("'", "\\'"), description.replace("'", "\\'"), fact.replace("'", "\\'"), filename, ctx.author.id)
+        cursor.execute(sql, val)
+        mydb.commit()
+
+        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
+        sql = f"SELECT COUNT(*) FROM stuff"
+        cursor.execute(sql)
+        id = cursor.fetchone()[0]
+        cursor.close()
+        print("HOLY BALLS WE DID IT")
+
+        await ctx.respond(content=f"Your submission has been saved! ID: {id}\n")
+
+        print(f"Stuff {id} submitted successfully!")
+
+    except Exception as e:
+        print(f"Oh, fiddlesticks! What now... {e}?!")
+        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
+        cursor.close()
+
+# Stuff retrieval fun
+@stuff.command(
+    name="find",
+    description="Look around the stuffpile in search of things."
+)
+async def stuff_find(
+    ctx: discord.ApplicationContext,
+    type: Option(str, "The type of thing you're looking for.", choices=['Person', 'Place', 'Thing'], required=True)
+):
+    try:
+        # Connect to database
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Count total images
+        sql = f"SELECT id, name, description, fact, image FROM stuff WHERE type = \"{type}\" ORDER BY RAND() LIMIT 1;"
+        cursor.execute(sql)
+        id, name, description, fact, image = cursor.fetchone()
+
+        image_path = f"uploads/{image}.jpg"
+        print(f"Retrieved image path from DB: {image_path}")
+
+        embed = discord.Embed(
+            title=name,
+            description=description,
+            color=discord.Color.blurple(),
+        )
+        embed.add_field(name="Fun Fact:", value=fact)
+        embed.set_footer(text=f"ID: {id}")
+        embed.set_image(url=f"attachment://{image}.jpg")
+
+        await ctx.respond(content=f"Here's what I found!",embed=embed,file=discord.File(image_path))
+
+        print(f"Thing {id} sent successfully!")
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error retrieving image: {e}")
+        await ctx.respond(f"Uh oh, something went wrong: {e}")
+        cursor.close()
 
 
 # Define special commands
 
 # Database Connection Setup
 def reconnect_to_db():
-  global mydb  # Use global keyword to modify the global variable
+    global mydb  # Use global keyword to modify the global variable
 
-  try:
-    mydb = mysql.connector.connect(
-        host=os.getenv('DB_HOST'),
-        user=os.getenv('DB_USER'),
-        password=os.getenv('DB_PASSWORD'),
-        database=os.getenv('DB_NAME')
-    )
-  except mysql.connector.Error as err:
-    print(f"Error connecting to database: {err}")
+    try:
+        mydb = mysql.connector.connect(
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            database=os.getenv('DB_NAME')
+        )
+    except mysql.connector.Error as err:
+        print(f"Error connecting to database: {err}")
 
 # Run a command on this machine.
 def runme(command):
@@ -484,6 +582,45 @@ def sendit(command):
         return("Connection timed out.")
     except socket.error as e:
         return(f"Connection error: {e}")
+
+
+# DEFINE SPECIAL MOMENTS
+
+# When the bot sees something has been sent in one of the channels...
+@bot.event
+async def on_message(message):
+    # If the bot posted it, we don't need it to respond to itself.
+    if message.author == bot.user:
+        return
+
+    msg = message.content.lower()
+
+    # If bot mentioned in any message...
+    if bot.user.mentioned_in(message):
+        if 'kill' in msg or 'murder' in msg:
+            if 'me' in msg:
+                responses = ["Hey, please take your own health seriously. :heart:", "Later. :knife:"]
+                await message.channel.send(random.choice(responses))
+                return
+            if 'yourself' in msg:
+                await message.channel.send('Well that\'s not very nice...')
+                return
+            await message.channel.send('You want me to *kill someone*?!... Okay! :knife:')
+            return
+
+        if 'thanks' in msg:
+            await message.channel.send('You\'re welcome! :smiling_face_with_3_hearts:')
+            return
+
+        if 'sorry' in msg:
+            responses = ["I'll never forgive you... :frowning2:", "It's alright, I guess... :frowning:", "It's okay! :smile:"]
+            await message.channel.send(random.choice(responses))
+            return
+
+# When the bot is ready to take on the world...
+@bot.event
+async def on_ready():
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
 
 
 # And now we run it!
