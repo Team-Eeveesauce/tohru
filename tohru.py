@@ -199,13 +199,14 @@ async def archives_upload(
         # Compress the image
         try:
             from wand.image import Image as MagickImage
-            with MagickImage(filename=saved_path) as magick_img:
+            with MagickImage(filename=f"{saved_path}[0]") as magick_img:
                 magick_img.format = 'jpeg'
                 magick_img.compression_quality = 2  # Adjust quality as needed
                 magick_img.save(filename=jpeg_path)
             print("Image compressed using PyMagick!")
         except Exception as e:
-            await ctx.respond(f"Something went wrong compressing the image: {e}")
+            # USE THIS WHEN DEBUGGING await ctx.respond(content=f"Something went wrong processing the image: {e}")
+            await ctx.respond(content="Something went wrong processing the image. Your submission has NOT been saved.")
             print(f"Image NOT compressed! {e}")
             return  # End command execution if compression failed
 
@@ -317,8 +318,8 @@ tips = bot.create_group(
 async def tips_submit(
     ctx: discord.ApplicationContext,
     type: Option(str, "Whatever type of submission you're looking to make.", choices=['Tip', 'Quote'], required=True),
-    content: Option(str, "Type your submission here.", required=True),
-    author: Option(str, "Whoever said the quote.", required=False, default="Anonymous")
+    content: Option(str, "Type your submission here.", required=True, max_length=4096),
+    author: Option(str, "Whoever said the quote.", required=False, default="Anonymous", max_length=256)
 ):
     print("Tip submission command called!")
 
@@ -435,10 +436,10 @@ stuff = bot.create_group(
 async def stuff_submit(
     ctx: discord.ApplicationContext,
     type: Option(str, "The type of submission you're making.", choices=['Person', 'Place', 'Thing'], required=True),
-    name: Option(str, "The name of your submission here.", required=True),
-    description: Option(str, "A detailed description of your submission.", required=True),
+    name: Option(str, "The name of your submission here.", required=True, max_length=256),
+    description: Option(str, "A detailed description of your submission.", required=True, max_length=4096),
     image: Option(discord.Attachment, "An image of your submission.", required=True),
-    fact: Option(str, "A fun fact about your submission.", required=False, default="None provided.")
+    fact: Option(str, "A fun fact about your submission.", required=False, default="None provided.", max_length=1024)
 ):
     print("Stuff submission command called!")
     await ctx.defer(ephemeral=True)
@@ -464,13 +465,15 @@ async def stuff_submit(
         # Compress the image
         try:
             from wand.image import Image as MagickImage
-            with MagickImage(filename=saved_path) as magick_img:
+            with MagickImage(filename=f"{saved_path}[0]") as magick_img:
+                # Convert to JPEG
                 magick_img.format = 'jpeg'
                 magick_img.compression_quality = 80  # Adjust quality as needed
                 magick_img.save(filename=jpeg_path)
             print("Image compressed using PyMagick!")
         except Exception as e:
-            await ctx.edit(f"Something went wrong compressing the image: {e}")
+            # USE THIS WHEN DEBUGGING await ctx.respond(content=f"Something went wrong processing the image: {e}")
+            await ctx.respond(content="Something went wrong processing the image. Your submission has NOT been saved.")
             print(f"Image NOT compressed! {e}")
             return  # End command execution if compression failed
 
