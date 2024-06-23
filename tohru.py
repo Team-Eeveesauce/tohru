@@ -79,6 +79,19 @@ async def download_spigg(ctx):
     response = sendit(b"download_spigg")
     await ctx.respond(response)
 
+# Repeat whatever is said.
+@bot.slash_command(
+    name="echo",
+    description="Make Tohru say something."
+)
+async def echo(
+    ctx: discord.ApplicationContext,
+    content: Option(str, "Your message here!", required=True)
+):
+    print("Executing ping command.")
+    await ctx.respond("I gotchu, bro.", ephemeral=True)
+    await ctx.send(content=content)
+
 
 # Commands that ping stuff.
 ping = bot.create_group(
@@ -124,7 +137,7 @@ restart = bot.create_group(
 )
 async def restart_bot(ctx):
     print("Restarting bot...")
-    await ctx.respond("Restarting Tohru...")
+    await ctx.respond("Restarting Tohru...", ephemeral=True)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
     await bot.close()
     response = runme("sudo supervisorctl restart tohru")
@@ -411,8 +424,7 @@ async def tips_roll(
 # Commands involving the stuffpile.
 stuff = bot.create_group(
     name="stuff",
-    description="Commands relating to the use of the stuffpile.",
-    guild_ids=[GUILD_ID]
+    description="Commands relating to the use of the stuffpile."
 )
 
 # Stuff submission fun
@@ -424,9 +436,9 @@ async def stuff_submit(
     ctx: discord.ApplicationContext,
     type: Option(str, "The type of submission you're making.", choices=['Person', 'Place', 'Thing'], required=True),
     name: Option(str, "The name of your submission here.", required=True),
+    description: Option(str, "A detailed description of your submission.", required=True),
     image: Option(discord.Attachment, "An image of your submission.", required=True),
-    description: Option(str, "A detailed description of your submission.", required=False, default="No description provided."),
-    fact: Option(str, "A fun fact about your submission.", required=False)
+    fact: Option(str, "A fun fact about your submission.", required=False, default="None provided.")
 ):
     print("Stuff submission command called!")
     await ctx.defer(ephemeral=True)
@@ -474,8 +486,17 @@ async def stuff_submit(
         id = cursor.fetchone()[0]
         cursor.close()
         print("HOLY BALLS WE DID IT")
+        
+        embed = discord.Embed(
+            title=name,
+            description=description,
+            color=discord.Color.from_rgb(247, 109, 21),
+        )
+        embed.add_field(name="Fun Fact:", value=fact)
+        embed.set_footer(text=f"ID: {id}")
+        embed.set_image(url=f"attachment://{filename}.jpg")
 
-        await ctx.respond(content=f"Your submission has been saved! ID: {id}\n")
+        await ctx.respond(content=f"Your submission has been saved! ID: {id}",embed=embed,file=discord.File(jpeg_path))
 
         print(f"Stuff {id} submitted successfully!")
 
@@ -513,7 +534,7 @@ async def stuff_find(
         embed = discord.Embed(
             title=name,
             description=description,
-            color=discord.Color.blurple(),
+            color=discord.Color.from_rgb(247, 109, 21),
         )
         embed.add_field(name="Fun Fact:", value=fact)
         embed.set_footer(text=f"ID: {id}")
