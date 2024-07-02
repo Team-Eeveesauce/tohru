@@ -352,9 +352,9 @@ async def tips_submit(
         print("HOLY BALLS WE DID IT")
 
         if type == "Tip":
-            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> `{content}`", ephemeral=True)
+            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> {content}", ephemeral=True)
         else:
-            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *`\"{content}\" - {author}`*", ephemeral=True)
+            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{content}\" - {author}*", ephemeral=True)
 
         print(f"Tip {id} submitted successfully!")
 
@@ -410,9 +410,9 @@ async def tips_roll(
 
         # Send image
         if db == tips:
-            await ctx.respond(content=f"> `{content}`")
+            await ctx.respond(content=f"> {content}")
         else:
-            await ctx.respond(content=f"> *`\"{content}\" - {author}`*")
+            await ctx.respond(content=f"> *\"{content}\" - {author}*")
         print(f"Submission ID {id} sent successfully!")
         cursor.close()
 
