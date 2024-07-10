@@ -12,7 +12,7 @@ Mostly just designed to be used in the DTAG server, it can do certain things tha
 ## Installation (Tohru)
 You'll need to install Python 3 onto your machine to use either of these. The exact version probably doesn't matter, but I use 3.11.
 
-Next, there's a few packages that you'll need to install from pip, which you can do by running this: `pip3 install py-cord mysql-connector-python python-dotenv pymagick`
+Next, there's a few packages that you'll need to install from pip, which you can do by running this: `pip3 install py-cord mysql-connector-python python-dotenv pymagick colorthief pillow`
 
 You'll also need a MariaDB or MySQL installation setup on one of your computers. It doesn't have to be on the same machine as Tohru, but it should be locally available.
 

@@ -18,6 +18,8 @@ import time
 import pymagick
 import mysql.connector
 from datetime import datetime
+from colorthief import ColorThief
+from PIL import ImageColor
 
 # Intents because we need them apparently
 intents = discord.Intents.default()
@@ -210,6 +212,10 @@ async def archives_upload(
             print(f"Image NOT compressed! {e}")
             return  # End command execution if compression failed
 
+        # Steal the dominant colour from the image.
+        color_thief = ColorThief(saved_path)
+        dominant_color = color_thief.get_color(quality=1)
+
         # Connect to database.
         try:
             cursor = mydb.cursor()
@@ -220,7 +226,7 @@ async def archives_upload(
 
         # Store image info in the database
         sql = "INSERT INTO images (image_path, original_path, caption, submitter_id) VALUES (%s, %s, %s, %s)"
-        val = (jpeg_path, saved_path, caption.replace("'", "\\'"), ctx.author.id)  
+        val = (jpeg_path, saved_path, caption.replace('"', '\"'), ctx.author.id)  
         cursor.execute(sql, val)
         mydb.commit()
 
@@ -340,7 +346,7 @@ async def tips_submit(
 
         # Store tip in the database
         sql = f"INSERT INTO {db} (content, author, submitter_id) VALUES (%s, %s, %s)"
-        val = (content.replace("'", "\\'"), author.replace("'", "\\'"), ctx.author.id)  # Escape single quotes
+        val = (content.replace('"', '\"'), author.replace('"', '\"'), ctx.author.id)  # Escape single quotes
         cursor.execute(sql, val)
         mydb.commit()
 
@@ -477,9 +483,14 @@ async def stuff_submit(
             print(f"Image NOT compressed! {e}")
             return  # End command execution if compression failed
 
+        # Steal the dominant colour from the image.
+        color_thief = ColorThief(f"uploads/{filename}.jpg")
+        dominant_color = color_thief.get_color(quality=2)
+        hexcode = rgb2hex(*dominant_color)
+
         # Store thing in the database
-        sql = f"INSERT INTO stuff (type, name, description, fact, image, submitter_id) VALUES (%s, %s, %s, %s, %s, %s)"
-        val = (type, name.replace("'", "\\'"), description.replace("'", "\\'"), fact.replace("'", "\\'"), filename, ctx.author.id)
+        sql = f"INSERT INTO stuff (type, name, description, fact, image, submitter_id, colour) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        val = (type, name.replace('"', '\"'), description.replace('"', '\"'), fact.replace('"', '\"'), filename, ctx.author.id, hexcode)
         cursor.execute(sql, val)
         mydb.commit()
 
@@ -493,7 +504,7 @@ async def stuff_submit(
         embed = discord.Embed(
             title=name,
             description=description,
-            color=discord.Color.from_rgb(247, 109, 21),
+            color=discord.Color.from_rgb(*dominant_color),
         )
         embed.add_field(name="Fun Fact:", value=fact)
         embed.set_footer(text=f"ID: {id}")
@@ -526,10 +537,10 @@ async def stuff_find(
             reconnect_to_db()
             cursor = mydb.cursor()
 
-        # Count total images
-        sql = f"SELECT id, name, description, fact, image FROM stuff WHERE type = \"{type}\" ORDER BY RAND() LIMIT 1;"
+        # Grab a random image
+        sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE type = \"{type}\" ORDER BY RAND() LIMIT 1;"
         cursor.execute(sql)
-        id, name, description, fact, image = cursor.fetchone()
+        id, name, description, fact, image, hexcode = cursor.fetchone()
 
         image_path = f"uploads/{image}.jpg"
         print(f"Retrieved image path from DB: {image_path}")
@@ -537,7 +548,7 @@ async def stuff_find(
         embed = discord.Embed(
             title=name,
             description=description,
-            color=discord.Color.from_rgb(247, 109, 21),
+            color=discord.Color.from_rgb(*ImageColor.getrgb(hexcode)),
         )
         embed.add_field(name="Fun Fact:", value=fact)
         embed.set_footer(text=f"ID: {id}")
@@ -559,7 +570,6 @@ async def stuff_find(
 # Database Connection Setup
 def reconnect_to_db():
     global mydb  # Use global keyword to modify the global variable
-
     try:
         mydb = mysql.connector.connect(
             host=os.getenv('DB_HOST'),
@@ -606,6 +616,14 @@ def sendit(command):
         return("Connection timed out.")
     except socket.error as e:
         return(f"Connection error: {e}")
+
+# Convert RGB values to HEX because who the hell needs RGB values.
+def rgb2hex(r, g, b):
+    return '#{:02x}{:02x}{:02x}'.format(r, g, b)
+
+# Concert HEX back to RGB because I hate optimization.
+def hex2rgb(hexcode):
+    return tuple(map(ord,hexcode[1:].decode('hex')))
 
 
 # DEFINE SPECIAL MOMENTS
