@@ -564,6 +564,54 @@ async def stuff_find(
         await ctx.respond(f"Uh oh, something went wrong: {e}")
         cursor.close()
 
+# Stuff location fun
+@stuff.command(
+    name="locate",
+    description="Find an item in the stuffpile by ID."
+)
+async def stuff_locate(
+    ctx: discord.ApplicationContext,
+    id: Option(int, "The ID of the thing you're looking for.", required=True)
+):
+    try:
+        # Connect to database
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Grab the image
+        sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE id = \"{id}\";"
+        cursor.execute(sql)
+        id, name, description, fact, image, hexcode = cursor.fetchone()
+        # Check if exists
+        if not name:
+            return await ctx.respond(f"Submission with ID {id} not found!")
+
+        image_path = f"uploads/{image}.jpg"
+        print(f"Retrieved image path from DB: {image_path}")
+
+        embed = discord.Embed(
+            title=name,
+            description=description,
+            color=discord.Color.from_rgb(*ImageColor.getrgb(hexcode)),
+        )
+        embed.add_field(name="Fun Fact:", value=fact)
+        embed.set_footer(text=f"ID: {id}")
+        embed.set_image(url=f"attachment://{image}.jpg")
+
+        await ctx.respond(content=f"Here's what I found!",embed=embed,file=discord.File(image_path))
+
+        print(f"Thing {id} sent successfully!")
+        cursor.close()
+
+    except Exception as e:
+        print(f"Error retrieving image: {e}")
+        await ctx.respond(f"Uh oh, something went wrong: {e}")
+        cursor.close()
+
 
 # Define special commands
 
