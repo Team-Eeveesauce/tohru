@@ -500,18 +500,10 @@ async def stuff_submit(
         id = cursor.fetchone()[0]
         cursor.close()
         print("HOLY BALLS WE DID IT")
-        
-        embed = discord.Embed(
-            title=name,
-            description=description,
-            color=discord.Color.from_rgb(*dominant_color),
-        )
-        embed.add_field(name="Fun Fact:", value=fact)
-        embed.set_footer(text=f"ID: {id}")
-        embed.set_image(url=f"attachment://{filename}.jpg")
 
+        # Prepare it to send off to the user!
+        embed = prepare_embed(name, description, hexcode, fact, id, hexcode)
         await ctx.respond(content=f"Your submission has been saved! ID: {id}",embed=embed,file=discord.File(jpeg_path))
-
         print(f"Stuff {id} submitted successfully!")
 
     except Exception as e:
@@ -538,24 +530,17 @@ async def stuff_find(
             cursor = mydb.cursor()
 
         # Grab a random image
-        sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE type = \"{type}\" ORDER BY RAND() LIMIT 1;"
+        sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE type = \"{type}\" AND visible = true ORDER BY RAND() LIMIT 1;"
         cursor.execute(sql)
         id, name, description, fact, image, hexcode = cursor.fetchone()
 
+        # Construct the image path.
         image_path = f"uploads/{image}.jpg"
         print(f"Retrieved image path from DB: {image_path}")
 
-        embed = discord.Embed(
-            title=name,
-            description=description,
-            color=discord.Color.from_rgb(*ImageColor.getrgb(hexcode)),
-        )
-        embed.add_field(name="Fun Fact:", value=fact)
-        embed.set_footer(text=f"ID: {id}")
-        embed.set_image(url=f"attachment://{image}.jpg")
-
+        # Prepare it to send off to the user!
+        embed = prepare_embed(name, description, hexcode, fact, id, image)
         await ctx.respond(content=f"Here's what I found!",embed=embed,file=discord.File(image_path))
-
         print(f"Thing {id} sent successfully!")
         cursor.close()
 
@@ -582,28 +567,21 @@ async def stuff_locate(
             reconnect_to_db()
             cursor = mydb.cursor()
 
-        # Grab the image
-        sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE id = \"{id}\";"
-        cursor.execute(sql)
-        id, name, description, fact, image, hexcode = cursor.fetchone()
-        # Check if exists
-        if not name:
+        try:
+            # Grab the image
+            sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE id = \"{id}\" AND visible = true;"
+            cursor.execute(sql)
+            id, name, description, fact, image, hexcode = cursor.fetchone()
+        except Exception as e:
             return await ctx.respond(f"Submission with ID {id} not found!")
 
+        # Construct the image path.
         image_path = f"uploads/{image}.jpg"
         print(f"Retrieved image path from DB: {image_path}")
 
-        embed = discord.Embed(
-            title=name,
-            description=description,
-            color=discord.Color.from_rgb(*ImageColor.getrgb(hexcode)),
-        )
-        embed.add_field(name="Fun Fact:", value=fact)
-        embed.set_footer(text=f"ID: {id}")
-        embed.set_image(url=f"attachment://{image}.jpg")
-
+        # Prepare it to send off to the user!
+        embed = prepare_embed(name, description, hexcode, fact, id, image)
         await ctx.respond(content=f"Here's what I found!",embed=embed,file=discord.File(image_path))
-
         print(f"Thing {id} sent successfully!")
         cursor.close()
 
@@ -673,6 +651,16 @@ def rgb2hex(r, g, b):
 def hex2rgb(hexcode):
     return tuple(map(ord,hexcode[1:].decode('hex')))
 
+def prepare_embed(name,description, hexcode, fact, id, image):
+    embed = discord.Embed(
+        title=name,
+        description=description,
+        color=discord.Color.from_rgb(*ImageColor.getrgb(hexcode)),
+    )
+    embed.add_field(name="Fun Fact:", value=fact)
+    embed.set_footer(text=f"ID: {id}")
+    embed.set_image(url=f"attachment://{image}.jpg")
+    return embed
 
 # DEFINE SPECIAL MOMENTS
 
@@ -683,7 +671,14 @@ async def on_message(message):
     if message.author == bot.user:
         return
 
+    # lowercase the message so it can detect words easier.
     msg = message.content.lower()
+
+    # Even if not mentioned, call out anyone lacking skibidi rizz.
+    if 'skibidi' in msg:
+        responses = ["You are NOT skibidi rizz!! :x: :toilet:"]
+        await message.channel.send(random.choice(responses))
+        return
 
     # If bot mentioned in any message...
     if bot.user.mentioned_in(message):
