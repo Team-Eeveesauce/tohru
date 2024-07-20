@@ -1,3 +1,31 @@
+#    *   )        )
+#  ` )  /(     ( /(  (      (
+#   ( )(_))(   )\()) )(    ))\
+#   (_(_()) )\ ((_)\ (()\  /((_)
+#   |_   _|((_)| |(_) ((_)(_))(
+#     | | / _ \| ' \ | '_|| || |
+#     |_| \___/|_||_||_|   \_,_|
+#
+# - The Ultimate(?) Discord Maid! -
+#
+# ░░░░▒░░░░░▒▒░▒▒▒▒░░▒░░░░░░░░░░▒▒▒
+# ▒▒▒▒▓▓▓▓▒░░▒░░▒▒▒▒░▒░▒▓▓▓▓▓▒▒▓▓▒▒
+# ▒░░░░▒▓▓▓▓░░░░░▒▒▒▒░▒▓▒░▒▓▓▓▒░░▒▒
+# ░░▒▓▓▓▓▓▓▒░░░░░░▒▒▒░░░▓▓▒▓▓▓▓░░▒▓
+# ░░░▓▒▒▒▒▒▒░░░░░░░▒▒░░░▒▒░░░▒▒░░░▒
+# ░░░░▒░░▒▒░░░░░░░░░▒░░░░░░░▒▒░░░░▒
+# ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▒
+# ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▒
+# ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▒
+# ▒░░░░░░░░░░░░░░░░░░▒░░░░░░░░░░░▒▒
+# ▓░░░░░░░░░▒▓▒▓▓▓▓▓▓▓▓▓░░░░░░░░░▒░
+# █▓░░░░░░░░▒▓▓▒▒▒▒▒▒▒▓▒░░░░░░░░▓▒░
+# ███▒░░░░░░░▒▒▒▒▒▒▒▒▒▒▒░░░░░░▒██▒░
+# █████▒░░░░░░░▒▒▒▒▒▒░░░░░░░▒████▒░
+
+
+# INITIALIZATIONS...
+
 # for everything
 import os
 import random
@@ -428,16 +456,16 @@ async def tips_roll(
         cursor.close()
 
 
-# Commands involving the stuffpile.
+# Commands involving the Stuffpile (TM).
 stuff = bot.create_group(
     name="stuff",
-    description="Commands relating to the use of the stuffpile."
+    description="Commands relating to the use of the Stuffpile (TM)."
 )
 
 # Stuff submission fun
 @stuff.command(
     name="submit",
-    description="Submit something to the stuffpile."
+    description="Submit something to the Stuffpile (TM)."
 )
 async def stuff_submit(
     ctx: discord.ApplicationContext,
@@ -514,7 +542,7 @@ async def stuff_submit(
 # Stuff retrieval fun
 @stuff.command(
     name="find",
-    description="Look around the stuffpile in search of things."
+    description="Look around the Stuffpile (TM) in search of things."
 )
 async def stuff_find(
     ctx: discord.ApplicationContext,
@@ -552,7 +580,7 @@ async def stuff_find(
 # Stuff location fun
 @stuff.command(
     name="locate",
-    description="Find an item in the stuffpile by ID."
+    description="Find an item in the Stuffpile (TM) by ID."
 )
 async def stuff_locate(
     ctx: discord.ApplicationContext,
@@ -647,10 +675,11 @@ def sendit(command):
 def rgb2hex(r, g, b):
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
 
-# Concert HEX back to RGB because I hate optimization.
+# Convert HEX back to RGB because I hate optimization.
 def hex2rgb(hexcode):
     return tuple(map(ord,hexcode[1:].decode('hex')))
 
+# Create neat embeds for items in the Stuffpile (TM).
 def prepare_embed(name,description, hexcode, fact, id, image):
     embed = discord.Embed(
         title=name,
