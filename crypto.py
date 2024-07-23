@@ -84,7 +84,12 @@ def set_dictionary(code, way):
                     "[": "USGFGD",
                     "]": "FKHYDK",
                     "=": "56F15G",
-                    "%": "D4G23E"
+                    "%": "D4G23E",
+                    "?": "DBOL3E",
+                    "!": "ABEOL3",
+                    "|": "SID427",
+                    "`": "92SID8",
+                    "~": "9DDOD2"
                 }
 
     # Are we gonna pop 'er in reverse, or nah?
