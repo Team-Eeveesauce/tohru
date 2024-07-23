@@ -48,6 +48,7 @@ import mysql.connector
 from datetime import datetime
 from colorthief import ColorThief
 from PIL import ImageColor
+from wand.image import Image as MagickImage
 
 # Intents because we need them apparently
 intents = discord.Intents.default()
@@ -112,28 +113,40 @@ async def download_spigg(ctx):
 # Repeat whatever is said.
 @bot.slash_command(
     name="echo",
-    description="Make Tohru say something."
+    description="Make Tohru say something.",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install]
 )
 async def echo(
     ctx: discord.ApplicationContext,
     content: Option(str, "Your message here!", required=True)
 ):
     print("Executing ping command.")
-    await ctx.respond("I gotchu, bro.", ephemeral=True)
-    await ctx.send(content=content)
+    await ctx.respond(content=content)
+
+# Restarts the bot. Ends early so it looks nice on the Discord-side of things.
+@bot.slash_command(
+    name="bot",
+    description="Restarts Tohru to reload any changes.",
+    guild_ids=[GUILD_ID]
+)
+async def restart_bot(ctx):
+    print("Restarting bot...")
+    await ctx.respond("Restarting Tohru...", ephemeral=True)
+    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
+    await bot.close()
+    response = runme("sudo supervisorctl restart tohru")
 
 
 # Commands that ping stuff.
 ping = bot.create_group(
     name="ping",
-    description="Commands relating to the pinging of services."
-#    integration_types=["GUILD_INSTALL", "USER_INSTALL"],
-#    contexts=["GUILD","BOT_DM","PRIVATE_CHANNEL"]
+    description="Commands relating to the pinging of services.",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install]
 )
 
 # Check if we're live.
 @ping.command(
-    name="tohru",
+    name="bot",
     description="Checks if this bot is awake."
 )
 async def ping_tohru(ctx):
@@ -142,7 +155,7 @@ async def ping_tohru(ctx):
 
 # Connection test to SAUCEY-PC.
 @ping.command(
-    name="kanna",
+    name="friend",
     description="Checks if the helper service is awake."
 )
 async def ping_kanna(ctx):
@@ -153,50 +166,47 @@ async def ping_kanna(ctx):
     await ctx.respond(response)
 
 
-# Commands that restart stuff.
-restart = bot.create_group(
-    name="restart",
-    description="Commands relating to the restarting of services.",
-    guild_ids=[GUILD_ID]
+# Commands that implement Crypto, The Secret Message Encoding Tool
+crypto = bot.create_group(
+    name="crypto",
+    description="The Secret Message Encoding Tool, now in Discord!",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install]
 )
 
-# Restarts the bot. Ends early so it looks nice on the Discord-side of things.
-@restart.command(
-    name="bot",
-    description="Restarts Tohru to reload any changes."
+# Encode to Crypto
+@crypto.command(
+    name="encode",
+    description="Encode something to Crypto code."
 )
-async def restart_bot(ctx):
-    print("Restarting bot...")
-    await ctx.respond("Restarting Tohru...", ephemeral=True)
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
-    await bot.close()
-    response = runme("sudo supervisorctl restart tohru")
+async def crypto_encode(
+    ctx: discord.ApplicationContext,
+    content: Option(str, "Your message here!", required=True, max_length=333)
+):
+    print("Encoding to Crypto.")
+    import crypto
+    message = crypto.encode_crypto(content)
+    await ctx.respond(content=message, ephemeral=True)
 
-# Restarts Emby in the unlikely event of a crash.
-@restart.command(
-    name="emby",
-    description="Launches Emby in the event of it crashing."
+# Decode from Crypto
+@crypto.command(
+    name="decode",
+    description="Decode something from Crypto code."
 )
-async def restart_emby(ctx):
-    print("Executing Emby command.")
-    response = sendit(b"emby")
-    await ctx.respond(response)
-
-# Restart szurubooru because it sucks.
-@restart.command(
-    name="szurubooru",
-    description="Restarts szurubooru after a power failure."
-)
-async def restart_szurubooru(ctx):
-    print("Restarting szurubooru...")
-    response = runme("scripts/mountbooru.sh")
-    await ctx.respond(response)
+async def crypto_decode(
+    ctx: discord.ApplicationContext,
+    content: Option(str, "Crypto code here!", required=True)
+):
+    print("Decoding from Crypto.")
+    import crypto
+    message = crypto.decode_crypto(content)
+    await ctx.respond(content=message, ephemeral=True)
 
 
 # Commands involving the archives system.
 archives = bot.create_group(
     name="archives",
-    description="Commands relating to the use of the Archives feature."
+    description="Commands relating to the use of the Archives feature.",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install]
 )
 
 # Image upload fun
@@ -341,7 +351,8 @@ async def archives_fetch(
 # Commands involving the tips system.
 tips = bot.create_group(
     name="tip",
-    description="Loading screen tips! Or quotes! Both!!"
+    description="Loading screen tips! Or quotes! Both!!",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install]
 )
 
 # Tip submission fun
@@ -459,7 +470,8 @@ async def tips_roll(
 # Commands involving the Stuffpile (TM).
 stuff = bot.create_group(
     name="stuff",
-    description="Commands relating to the use of the Stuffpile (TM)."
+    description="Commands relating to the use of the Stuffpile (TM).",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install]
 )
 
 # Stuff submission fun
@@ -498,7 +510,6 @@ async def stuff_submit(
 
         # Compress the image
         try:
-            from wand.image import Image as MagickImage
             with MagickImage(filename=f"{saved_path}[0]") as magick_img:
                 # Convert to JPEG
                 magick_img.format = 'jpeg'
@@ -506,7 +517,6 @@ async def stuff_submit(
                 magick_img.save(filename=jpeg_path)
             print("Image compressed using PyMagick!")
         except Exception as e:
-            # USE THIS WHEN DEBUGGING await ctx.respond(content=f"Something went wrong processing the image: {e}")
             await ctx.respond(content="Something went wrong processing the image. Your submission has NOT been saved.")
             print(f"Image NOT compressed! {e}")
             return  # End command execution if compression failed
@@ -530,7 +540,7 @@ async def stuff_submit(
         print("HOLY BALLS WE DID IT")
 
         # Prepare it to send off to the user!
-        embed = prepare_embed(name, description, hexcode, fact, id, hexcode)
+        embed = prepare_embed(name, description, hexcode, fact, id, filename)
         await ctx.respond(content=f"Your submission has been saved! ID: {id}",embed=embed,file=discord.File(jpeg_path))
         print(f"Stuff {id} submitted successfully!")
 
@@ -618,6 +628,83 @@ async def stuff_locate(
         await ctx.respond(f"Uh oh, something went wrong: {e}")
         cursor.close()
 
+# Stuff updating fun
+@stuff.command(
+    name="update",
+    description="Update something in the Stuffpile (TM)."
+)
+async def stuff_update(
+    ctx: discord.ApplicationContext,
+    type: Option(str, "The type of edit you're making.", choices=['Image'], required=True),
+    id: Option(int, "The ID of the submission to be updated.", required=True),
+    image: Option(discord.Attachment, "An updated image of your submission.", required=False)
+):
+    print("Stuff submission command called!")
+    await ctx.defer(ephemeral=True)
+
+    try:
+        # Connect to database.
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+		# Verify that the submission exists, because it would be terrible if it didn't.
+        try:
+            sql = f"SELECT id, name, description, fact FROM stuff WHERE id = \"{id}\" AND visible = true;"
+            cursor.execute(sql)
+            id, name, description, fact = cursor.fetchone()
+        except Exception as e:
+            return await ctx.respond(f"Submission with ID {id} not found!")
+
+        # Save the new image.
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
+        filename = f"thing_{timestamp}_{random_suffix}_{image.filename}" 
+        saved_path = f"uploads/{filename}"
+        jpeg_path = f"uploads/{filename}.jpg"
+        await image.save(saved_path)
+        print("Image saved!")
+
+        # Compress the new image
+        try:
+            from wand.image import Image as MagickImage
+            with MagickImage(filename=f"{saved_path}[0]") as magick_img:
+                # Convert to JPEG
+                magick_img.format = 'jpeg'
+                magick_img.compression_quality = 80  # Adjust quality as needed
+                magick_img.save(filename=jpeg_path)
+            print("Image compressed using PyMagick!")
+        except Exception as e:
+            # USE THIS WHEN DEBUGGING await ctx.respond(content=f"Something went wrong processing the image: {e}")
+            await ctx.respond(content="Something went wrong processing the image. Your submission has NOT been saved.")
+            print(f"Image NOT compressed! {e}")
+            return  # End command execution if compression failed
+
+        # Steal the dominant colour from the new image.
+        color_thief = ColorThief(f"uploads/{filename}.jpg")
+        dominant_color = color_thief.get_color(quality=2)
+        hexcode = rgb2hex(*dominant_color)
+
+        # Update database
+        sql = f"UPDATE stuff SET image = '{filename}', colour = '{hexcode}' WHERE id = {id};"
+        cursor.execute(sql)
+        mydb.commit()
+        cursor.close()
+        print("HOLY BALLS WE DID IT")
+
+        # Prepare it to send off to the user!
+        embed = prepare_embed(name, description, hexcode, fact, id, filename)
+        await ctx.respond(content=f"Submission {id} has successfully been updated!",embed=embed,file=discord.File(jpeg_path))
+        print(f"Stuff {id} updated successfully!")
+
+    except Exception as e:
+        print(f"Oh, fiddlesticks! What now... {e}?!")
+        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
+        cursor.close()
+
 
 # Define special commands
 
@@ -680,7 +767,7 @@ def hex2rgb(hexcode):
     return tuple(map(ord,hexcode[1:].decode('hex')))
 
 # Create neat embeds for items in the Stuffpile (TM).
-def prepare_embed(name,description, hexcode, fact, id, image):
+def prepare_embed(name, description, hexcode, fact, id, image):
     embed = discord.Embed(
         title=name,
         description=description,
