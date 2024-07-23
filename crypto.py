@@ -85,8 +85,8 @@ def set_dictionary(code, way):
                     "]": "FKHYDK",
                     "=": "56F15G",
                     "%": "D4G23E",
-                    "?": "DBOL3E",
-                    "!": "ABEOL3",
+                    "?": "FWIP49",
+                    "!": "E933DC",
                     "|": "SID427",
                     "`": "92SID8",
                     "~": "9DDOD2"
