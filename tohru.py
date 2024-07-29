@@ -77,17 +77,6 @@ async def mount(ctx):
     response = runme("sudo mount -a")
     await ctx.respond(response)
 
-# Restart szurubooru because it sucks.
-@bot.slash_command(
-    name="debug",
-    description="Runs the debug script that you probably don't need to run.",
-    guild_ids=[GUILD_ID]
-)
-async def debug(ctx):
-    print("Running debug script.")
-    response = runme("./scripts/dragonmaid_debug.sh")
-    await ctx.respond(response)
-
 # Instantly opens Death Stranding on the SAUCEY-PC.
 @bot.slash_command(
     name="gaming",
@@ -125,8 +114,8 @@ async def echo(
 
 # Restarts the bot. Ends early so it looks nice on the Discord-side of things.
 @bot.slash_command(
-    name="bot",
-    description="Restarts Tohru to reload any changes.",
+    name="restart",
+    description="Restarts the bot to reload any changes.",
     guild_ids=[GUILD_ID]
 )
 async def restart_bot(ctx):
@@ -611,7 +600,8 @@ async def stuff_locate(
             cursor.execute(sql)
             id, name, description, fact, image, hexcode = cursor.fetchone()
         except Exception as e:
-            return await ctx.respond(f"Submission with ID {id} not found!")
+            await ctx.respond(f"Submission with ID {id} not found!")
+            return
 
         # Construct the image path.
         image_path = f"uploads/{image}.jpg"
@@ -635,7 +625,7 @@ async def stuff_locate(
 )
 async def stuff_update(
     ctx: discord.ApplicationContext,
-    type: Option(str, "The type of edit you're making.", choices=['Image'], required=True),
+    type: Option(str, "The type of edit you're making.", choices=['Image','Visibility'], required=True),
     id: Option(int, "The ID of the submission to be updated.", required=True),
     image: Option(discord.Attachment, "An updated image of your submission.", required=False)
 ):
@@ -653,43 +643,56 @@ async def stuff_update(
 
 		# Verify that the submission exists, because it would be terrible if it didn't.
         try:
-            sql = f"SELECT id, name, description, fact FROM stuff WHERE id = \"{id}\" AND visible = true;"
+            sql = f"SELECT id, name, description, fact, image, colour, visible FROM stuff WHERE id = \"{id}\" AND visible = true;"
             cursor.execute(sql)
-            id, name, description, fact = cursor.fetchone()
+            id, name, description, fact, filename, hexcode, visible = cursor.fetchone()
         except Exception as e:
             return await ctx.respond(f"Submission with ID {id} not found!")
 
-        # Save the new image.
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
-        filename = f"thing_{timestamp}_{random_suffix}_{image.filename}" 
-        saved_path = f"uploads/{filename}"
+        # Now, before we do anything else, fix some stuff so we can show the entries without anything weird happening.
         jpeg_path = f"uploads/{filename}.jpg"
-        await image.save(saved_path)
-        print("Image saved!")
 
-        # Compress the new image
-        try:
-            from wand.image import Image as MagickImage
-            with MagickImage(filename=f"{saved_path}[0]") as magick_img:
-                # Convert to JPEG
-                magick_img.format = 'jpeg'
-                magick_img.compression_quality = 80  # Adjust quality as needed
-                magick_img.save(filename=jpeg_path)
-            print("Image compressed using PyMagick!")
-        except Exception as e:
-            # USE THIS WHEN DEBUGGING await ctx.respond(content=f"Something went wrong processing the image: {e}")
-            await ctx.respond(content="Something went wrong processing the image. Your submission has NOT been saved.")
-            print(f"Image NOT compressed! {e}")
-            return  # End command execution if compression failed
+        match type:
+            case "Image":
+                # Save the new image.
+                timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+                random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4))
+                filename = f"thing_{timestamp}_{random_suffix}_{image.filename}"
+                saved_path = f"uploads/{filename}"
+                await image.save(saved_path)
+                print("Image saved!")
 
-        # Steal the dominant colour from the new image.
-        color_thief = ColorThief(f"uploads/{filename}.jpg")
-        dominant_color = color_thief.get_color(quality=2)
-        hexcode = rgb2hex(*dominant_color)
+                # Compress the new image
+                try:
+                    from wand.image import Image as MagickImage
+                    with MagickImage(filename=f"{saved_path}[0]") as magick_img:
+                        # Convert to JPEG
+                        magick_img.format = 'jpeg'
+                        magick_img.compression_quality = 80  # Adjust quality as needed
+                        magick_img.save(filename=jpeg_path)
+                    print("Image compressed using PyMagick!")
+                except Exception as e:
+                    # USE THIS WHEN DEBUGGING await ctx.respond(content=f"Something went wrong processing the image: {e}")
+                    await ctx.respond(content="Something went wrong processing the image. Your submission has NOT been saved.")
+                    print(f"Image NOT compressed! {e}")
+                    return  # End command execution if compression failed
+
+                # Steal the dominant colour from the new image.
+                color_thief = ColorThief(f"uploads/{filename}.jpg")
+                dominant_color = color_thief.get_color(quality=2)
+                hexcode = rgb2hex(*dominant_color)
+
+            case "Visibility":
+                visible = not visible
+                # Update database
+                sql = f"UPDATE stuff SET visible = {visible} WHERE id = {id}"
+                cursor.execute(sql)
+                mydb.commit()
+                cursor.close()
+                return await ctx.respond(content=f"Submission {id} has successfully been hidden!")
 
         # Update database
-        sql = f"UPDATE stuff SET image = '{filename}', colour = '{hexcode}' WHERE id = {id};"
+        sql = f"UPDATE stuff SET image = '{filename}', colour = '{hexcode}', visible = {visible} WHERE id = {id};"
         cursor.execute(sql)
         mydb.commit()
         cursor.close()
