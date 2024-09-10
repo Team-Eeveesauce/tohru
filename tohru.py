@@ -41,6 +41,8 @@ from discord import Option
 import subprocess
 import socket
 import time
+from eskcompro import client
+from eskcompro import common
 
 # for image upload stuff
 import pymagick
@@ -85,7 +87,7 @@ async def mount(ctx):
 )
 async def gaming(ctx):
     print("Executing Death Stranding command.")
-    response = sendit(b"gaming")
+    response = sendit("gaming")
     await ctx.respond(response)
 
 # Downloads new videos from AstralSpiff.
@@ -96,7 +98,7 @@ async def gaming(ctx):
 )
 async def download_spigg(ctx):
     print("Executing YT-DLP (spigg) command.")
-    response = sendit(b"download_spigg")
+    response = sendit("download_spigg")
     await ctx.respond(response)
 
 # Repeat whatever is said.
@@ -150,7 +152,7 @@ async def ping_tohru(ctx):
 async def ping_kanna(ctx):
     print("Executing connection command.")
     await ctx.defer()
-    response = sendit(b"connect")
+    response = sendit("connect")
     print(response)
     await ctx.respond(response)
 
@@ -738,28 +740,36 @@ def runme(command):
         print(result.stdout)
         return("Command run successfully!")
 
+kanna_data = ""
+kanna_dataed = True
+
+def client_receive(data):
+    kanna_data = data['data']
+    kanna_dataed = False
+    
 # Tell Kanna to run a command on the other machine.
 def sendit(command):
-    try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(TIMEOUT)
-            s.connect((KANNA_IP, PORT))
-            s.sendall(command)
-            data = s.recv(1024)
-            print(f"Received: {data.decode()}")
-            if data.decode() == "ok":
-                return("Command ran successfully!")
-            elif data.decode() == "bad":
-                return("Command not found! Server is out of date!")
-            elif data.decode() == "no":
-                return("Command refused! Maybe it's not implemented yet?")
-            else:
-                return("Command failed!")
+    kanna_dataed = True
+    kanna_data = ""
+    c = client(KANNA_IP, PORT)
+    c.on_receive = client_receive
+    c.connect()
+    c.client.settimeout(TIMEOUT)
+    c.send(command, "b64")
+    while kanna_dataed:
+        pass
 
-    except socket.timeout:
-        return("Connection timed out.")
-    except socket.error as e:
-        return(f"Connection error: {e}")
+    c.close()
+    c = None
+    print(f"Received: {kanna_data}")
+    if kanna_data == "ok":
+        return("Command ran successfully!")
+    elif kanna_data == "bad":
+        return("Command not found! Server is out of date!")
+    elif kanna_data == "no":
+        return("Command refused! Maybe it's not implemented yet?")
+    else:
+        return("Command failed!")
 
 # Convert RGB values to HEX because who the hell needs RGB values.
 def rgb2hex(r, g, b):

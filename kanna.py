@@ -1,6 +1,7 @@
 import socket
 import subprocess
 import os
+from eskcompro import server
 from dotenv import load_dotenv
 from win11toast import toast
 
@@ -22,48 +23,40 @@ def runme(command):
 def show_notification(title, message):
   toast(title, message)
 
+def on_recv(data: dict, client:int):
+    print(f'Connected to {s.get_client(client).getpeername()[0]}')
 
-# Main loop
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-    s.bind(("0.0.0.0", PORT))
-    s.listen()
-    print("Kanna active!")
-    show_notification("Kanna", "Kanna service is active!")
+    print(f"Received: {data['data']}")
 
-    while True:
-        print("Waiting for something to do...")
-        conn, addr = s.accept()
-        with conn:
-            print(f'Connected to {addr}')
-            data = conn.recv(1024)
-            if not data:
-                break
+    # Message Handling Logic
+    if data['data'] == 'connect':
+        print("Was pinged! Sent a reply.")
+        show_notification("Kanna", "You've been pinged!")
+        reply = "ok"
+    # elif data.decode() == 'gaming':
+    #     print("Opening Epic Launcher...")
+    #     reply = runme("\"C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe\"")
+    #     conn.sendall(b"ok")
+    elif data['data'] == 'emby':
+        print("Restarting Emby... Probably.")
+        reply = runme("\"E:\\Streamable - The Return\\Emby-Server\\system\\EmbyServer.exe\"")
+        show_notification("Kanna", "Emby is restarting!")
+    elif data.decode() == 'download_spigg':
+        reply = "no"
+        print("Downloading spigg... OR NOT!!")
+    elif data['data'] == 'restart':
+        reply = "no"
+        print("Restarting bot... OR NOT!!")
+    else:
+        reply = "bad"
+        print("Command failed!")
+        show_notification("Kanna", "Recieved bad command from Tohru!")
 
-            print(f"Received: {data.decode()}")
+    s.send(reply, 'b64', client)
+    show_notification("Kanna", "Apparently we replied too...")
 
-            # Message Handling Logic
-            if data.decode() == 'connect':
-                print("Was pinged! Sent a reply.")
-                show_notification("Kanna", "You've been pinged!")
-                reply = b"ok"
-            # elif data.decode() == 'gaming':
-            #     print("Opening Epic Launcher...")
-            #     reply = runme("\"C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win32\\EpicGamesLauncher.exe\"")
-            #     conn.sendall(b"ok")
-            elif data.decode() == 'emby':
-                print("Restarting Emby... Probably.")
-                reply = runme("\"E:\\Streamable - The Return\\Emby-Server\\system\\EmbyServer.exe\"")
-                show_notification("Kanna", "Emby is restarting!")
-            elif data.decode() == 'download_spigg':
-                conn.sendall(b"no")
-                print("Downloading spigg... OR NOT!!")
-            elif data.decode() == 'restart':
-                conn.sendall(b"no")
-                print("Restarting bot... OR NOT!!")
-            else:
-                reply = b"bad"
-                print("Command failed!")
-                show_notification("Kanna", "Recieved bad command from Tohru!")
-
-            conn.sendall(reply)
-            show_notification("Kanna", "Apparently we replied too...")
+s = server(port=PORT)
+s.on_receive = on_recv
+print("Kanna active!")
+show_notification("Kanna", "Kanna service is active!")
+s.start()
