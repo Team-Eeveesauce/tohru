@@ -152,7 +152,7 @@ async def ping_kanna(ctx):
     await ctx.defer()
     response = sendit(b"connect")
     print(response)
-    await ctx.respond(response)
+    await ctx.followup.send(response)
 
 
 # Commands that implement Crypto, The Secret Message Encoding Tool
