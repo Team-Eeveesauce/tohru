@@ -709,6 +709,23 @@ async def stuff_update(
         cursor.close()
 
 
+# Epic context menu integration stuff (cool).
+
+# CONTEXT MENU: Decode from Crypto
+@bot.message_command(
+    name="Decode (Crypto)",
+    integration_types=[discord.IntegrationType.user_install]
+)
+async def crypto_decode(
+    ctx: discord.ApplicationContext,
+    message: discord.Message
+):
+    print("(C) Decoding from Crypto.")
+    import crypto
+    message = crypto.decode_crypto(message.content)
+    await ctx.respond(content=message, ephemeral=True)
+
+
 # Define special commands
 
 # Database Connection Setup

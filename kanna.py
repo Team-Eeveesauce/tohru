@@ -2,13 +2,13 @@ import socket
 import subprocess
 import os
 from dotenv import load_dotenv
-from win11toast import toast
+from win11toast import notify
 
 # Define singular variable
 load_dotenv()
 PORT = int(os.getenv('PORT'))
 
-# Define special commands
+# Define special command to run other commands on the machine.
 def runme(command):
     result = subprocess.run(command, shell=True, capture_output=True, text=True)
     if result.returncode != 0:
@@ -18,17 +18,12 @@ def runme(command):
         print(result.stdout)
         return(b"ok")
 
-# Show toast ontifcations in Windows on certain occasions
-def show_notification(title, message):
-  toast(title, message)
-
-
 # Main loop
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind(("0.0.0.0", PORT))
     s.listen()
     print("Kanna active!")
-    show_notification("Kanna", "Kanna service is active!")
+    notify("Kanna", "Kanna is now active!")
 
     while True:
         print("Waiting for something to do...")
@@ -44,7 +39,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             # Message Handling Logic
             if data.decode() == 'connect':
                 print("Was pinged! Sent a reply.")
-                show_notification("Kanna", "You've been pinged!")
+                notify("Kanna", "You've been pinged!")
                 reply = b"ok"
             # elif data.decode() == 'gaming':
             #     print("Opening Epic Launcher...")
@@ -53,7 +48,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             elif data.decode() == 'emby':
                 print("Restarting Emby... Probably.")
                 reply = runme("\"E:\\Streamable - The Return\\Emby-Server\\system\\EmbyServer.exe\"")
-                show_notification("Kanna", "Emby is restarting!")
+                notify("Kanna", "Emby is restarting!")
             elif data.decode() == 'download_spigg':
                 conn.sendall(b"no")
                 print("Downloading spigg... OR NOT!!")
@@ -63,7 +58,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             else:
                 reply = b"bad"
                 print("Command failed!")
-                show_notification("Kanna", "Recieved bad command from Tohru!")
+                notify("Kanna", "Recieved bad command from Tohru!")
 
             conn.sendall(reply)
-            show_notification("Kanna", "Apparently we replied too...")
+            notify("Kanna", "And... we replied back!")
