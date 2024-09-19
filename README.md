@@ -5,9 +5,9 @@ Mostly just designed to be used in the DTAG server, it can do certain things tha
 ## Features
   * PING the bot to make sure it's online.
   * CONNECT to check if Kanna is awake.
-  * GAMING will ask Kanna to open the Epic Games Launcher.
   * UPLOAD images to then be horribly compressed and stored in the archives.
   * TIPS AND QUOTES system for random advice and inspiration on command.
+  * CRYPTO integration (the [secret message tool](https://github.com/Team-Eeveesauce/crypto), not the currency.)
 
 ## Installation (Tohru)
 You'll need to install Python 3 onto your machine to use either of these. The exact version probably doesn't matter, but I use 3.11.
@@ -20,18 +20,18 @@ After those are installed, you just need to copy `.env.template` to `.env` and o
 
 Finally, run the bot by typing `python3 tohru.py`. If that doesn't work, try `python tohru.py`. And if *THAT* doesn't work, then you found a new bug! Report it please!!
 
-## Installation (Kanna)
-You'll still need Python 3 on your machine, and you should probably use the same version as you used for Tohru.
-
-You can skip most of the pip packages, but you'll still need dotenv, so just run this: `pip3 install python-dotenv`
-
-All you have to do now is copy `.env.template` to `.env` and open it in your text editor. You should instantly know what must be done.
-
-At last, you can run the service by typing `python3 kanna.py` in your terminal. If Windows says Python isn't installed, try `python kanna.py` instead.
-
 ## Kanna
 Kanna is Tohru's Windows-based friend who does stuff that Tohru can't do, since Tohru is designed to run on Linux and not Windows.
 So, unless you run Tohru on a Linux system and also have a Windows system that you wanna use the same features as Kanna supports... it might not be entirely useful.
+
+## Installation (Kanna)
+You'll still need Python 3 on your machine, and you should probably use the same version as you used for Tohru.
+
+You can skip most of the pip packages, but you'll still need dotenv and the toast notification handler, so just run this: `pip3 install python-dotenv win11toast`
+
+All you have to do now is copy `.env.template` to `.env` and reconfigure, or copy the one from when you were setting up Tohru.
+
+At last, you can run the service by typing `python3 kanna.py` or `python kanna.py` in your terminal, or by double-clicking on it.
 
 ## FAQ
 **Q.** Why is it named Tohru?  
