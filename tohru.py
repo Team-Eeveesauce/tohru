@@ -194,14 +194,14 @@ async def crypto_decode(
 # Commands involving the archives system.
 archives = bot.create_group(
     name="archives",
-    description="Commands relating to the use of the Archives feature.",
+    description="Commands related to our Image Archive.",
     integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install]
 )
 
 # Image upload fun
 @archives.command(
     name="upload",
-    description="Upload a horribly compressed image with a caption"
+    description="Upload and horribly compress an image."
 )
 async def archives_upload(
     ctx: discord.ApplicationContext, 
@@ -241,7 +241,7 @@ async def archives_upload(
 
         # Steal the dominant colour from the image.
         color_thief = ColorThief(saved_path)
-        dominant_color = color_thief.get_color(quality=1)
+        dominant_color = color_thief.get_color(quality=3)
 
         # Connect to database.
         try:
@@ -262,6 +262,7 @@ async def archives_upload(
         cursor.execute(sql)
         upload_id = cursor.fetchone()[0]
         cursor.close()
+        mydb.close()
         print("HOLY BALLS WE DID IT")
         
         # Send image
@@ -275,15 +276,16 @@ async def archives_upload(
         print(f"Oh god, what now... {e}?!")
         await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
         cursor.close()
+        mydb.close()
 
 # Image retrieval fun
 @archives.command(
     name="fetch",
-    description="Retrieve a previously uploaded image"
+    description="Retrieve an image from the archives."
 )
 async def archives_fetch(
     ctx: discord.ApplicationContext,
-    image_id: Option(int, "Specific image ID (set as 0 for random)", required=True),
+    image_id: Option(int, "Specific image ID", required=False, default=0),
     uncompressed: Option(bool, "Send the uncompressed version of the image?", default=False)
 ):
     try:
@@ -330,11 +332,13 @@ async def archives_fetch(
             await ctx.respond(content=f"Here you go, boss! (ID: {image_id})",file=discord.File(image_path))
         print(f"Image ID {image_id} sent successfully!")
         cursor.close()
+        mydb.close()
 
     except Exception as e:
         print(f"Error retrieving image: {e}")
         await ctx.respond(f"Uh oh, something went wrong: {e}")
         cursor.close()
+        mydb.close()
 
 
 # Commands involving the tips system.
@@ -347,13 +351,13 @@ tips = bot.create_group(
 # Tip submission fun
 @tips.command(
     name="submit",
-    description="Submit a loading screen tip or quote here."
+    description="Submit a helpful tip or an important quote."
 )
 async def tips_submit(
     ctx: discord.ApplicationContext,
-    type: Option(str, "Whatever type of submission you're looking to make.", choices=['Tip', 'Quote'], required=True),
+    type: Option(str, "Whether you are submitting a tip or a quote.", choices=['Tip', 'Quote'], required=True),
     content: Option(str, "Type your submission here.", required=True, max_length=4096),
-    author: Option(str, "Whoever said the quote.", required=False, default="Anonymous", max_length=256)
+    author: Option(str, "The person that the tip/quote originated from.", required=False, default="Anonymous", max_length=256)
 ):
     print("Tip submission command called!")
 
@@ -383,6 +387,7 @@ async def tips_submit(
         cursor.execute(sql)
         id = cursor.fetchone()[0]
         cursor.close()
+        mydb.close()
         print("HOLY BALLS WE DID IT")
 
         if type == "Tip":
@@ -396,6 +401,7 @@ async def tips_submit(
         print(f"Oh, fiddlesticks! What now... {e}?!")
         await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
         cursor.close()
+        mydb.close()
 
 # Tip retrieval fun
 @tips.command(
@@ -449,11 +455,13 @@ async def tips_roll(
             await ctx.respond(content=f"> *\"{content}\" - {author}*")
         print(f"Submission ID {id} sent successfully!")
         cursor.close()
+        mydb.close()
 
     except Exception as e:
         print(f"Error retrieving submission: {e}")
         await ctx.respond(f"Uh oh, something went wrong: {e}")
         cursor.close()
+        mydb.close()
 
 
 # Commands involving the Stuffpile (TM).
@@ -477,7 +485,7 @@ async def stuff_submit(
     fact: Option(str, "A fun fact about your submission.", required=False, default="None provided.", max_length=1024)
 ):
     print("Stuff submission command called!")
-    await ctx.defer(ephemeral=True)
+    await ctx.defer(ephemeral=False)
 
     try:
         # Connect to database.
@@ -512,7 +520,7 @@ async def stuff_submit(
 
         # Steal the dominant colour from the image.
         color_thief = ColorThief(f"uploads/{filename}.jpg")
-        dominant_color = color_thief.get_color(quality=2)
+        dominant_color = color_thief.get_color(quality=5)
         hexcode = rgb2hex(*dominant_color)
 
         # Store thing in the database
@@ -526,6 +534,7 @@ async def stuff_submit(
         cursor.execute(sql)
         id = cursor.fetchone()[0]
         cursor.close()
+        mydb.close()
         print("HOLY BALLS WE DID IT")
 
         # Prepare it to send off to the user!
@@ -537,6 +546,7 @@ async def stuff_submit(
         print(f"Oh, fiddlesticks! What now... {e}?!")
         await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
         cursor.close()
+        mydb.close()
 
 # Stuff retrieval fun
 @stuff.command(
@@ -545,45 +555,8 @@ async def stuff_submit(
 )
 async def stuff_find(
     ctx: discord.ApplicationContext,
-    type: Option(str, "The type of thing you're looking for.", choices=['Person', 'Place', 'Thing'], required=True)
-):
-    try:
-        # Connect to database
-        try:
-            cursor = mydb.cursor()
-        except mysql.connector.Error as err:
-            print(f"Error connecting to DB: {err}")
-            reconnect_to_db()
-            cursor = mydb.cursor()
-
-        # Grab a random image
-        sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE type = \"{type}\" AND visible = true ORDER BY RAND() LIMIT 1;"
-        cursor.execute(sql)
-        id, name, description, fact, image, hexcode = cursor.fetchone()
-
-        # Construct the image path.
-        image_path = f"uploads/{image}.jpg"
-        print(f"Retrieved image path from DB: {image_path}")
-
-        # Prepare it to send off to the user!
-        embed = prepare_embed(name, description, hexcode, fact, id, image)
-        await ctx.respond(content=f"Here's what I found!",embed=embed,file=discord.File(image_path))
-        print(f"Thing {id} sent successfully!")
-        cursor.close()
-
-    except Exception as e:
-        print(f"Error retrieving image: {e}")
-        await ctx.respond(f"Uh oh, something went wrong: {e}")
-        cursor.close()
-
-# Stuff location fun
-@stuff.command(
-    name="locate",
-    description="Find an item in the Stuffpile (TM) by ID."
-)
-async def stuff_locate(
-    ctx: discord.ApplicationContext,
-    id: Option(int, "The ID of the thing you're looking for.", required=True)
+    type: Option(str, "The type of thing you're looking for.", choices=['Person', 'Place', 'Thing'], required=False, default="Any"),
+    id: Option(int, "Specific image ID (overrides other options)", required=False, default=0)
 ):
     try:
         # Connect to database
@@ -595,8 +568,16 @@ async def stuff_locate(
             cursor = mydb.cursor()
 
         try:
-            # Grab the image
-            sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE id = \"{id}\" AND visible = true;"
+            if id == 0:
+                if type == "Any":
+                    # Grab a really random image.
+                    sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE visible = true ORDER BY RAND() LIMIT 1;"
+                else:
+                    # Grab a random image.
+                    sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE type = \"{type}\" AND visible = true ORDER BY RAND() LIMIT 1;"
+            else:
+                # Grab the specific image.
+                sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE id = \"{id}\" AND visible = true;"
             cursor.execute(sql)
             id, name, description, fact, image, hexcode = cursor.fetchone()
         except Exception as e:
@@ -612,11 +593,13 @@ async def stuff_locate(
         await ctx.respond(content=f"Here's what I found!",embed=embed,file=discord.File(image_path))
         print(f"Thing {id} sent successfully!")
         cursor.close()
+        mydb.close()
 
     except Exception as e:
         print(f"Error retrieving image: {e}")
         await ctx.respond(f"Uh oh, something went wrong: {e}")
         cursor.close()
+        mydb.close()
 
 # Stuff updating fun
 @stuff.command(
@@ -679,7 +662,7 @@ async def stuff_update(
 
                 # Steal the dominant colour from the new image.
                 color_thief = ColorThief(f"uploads/{filename}.jpg")
-                dominant_color = color_thief.get_color(quality=2)
+                dominant_color = color_thief.get_color(quality=3)
                 hexcode = rgb2hex(*dominant_color)
 
             case "Visibility":
@@ -689,6 +672,7 @@ async def stuff_update(
                 cursor.execute(sql)
                 mydb.commit()
                 cursor.close()
+                mydb.close()
                 return await ctx.respond(content=f"Submission {id} has successfully been hidden!")
 
         # Update database
@@ -696,6 +680,7 @@ async def stuff_update(
         cursor.execute(sql)
         mydb.commit()
         cursor.close()
+        mydb.close()
         print("HOLY BALLS WE DID IT")
 
         # Prepare it to send off to the user!
@@ -707,6 +692,7 @@ async def stuff_update(
         print(f"Oh, fiddlesticks! What now... {e}?!")
         await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
         cursor.close()
+        mydb.close()
 
 
 # Epic context menu integration stuff (cool).
@@ -716,7 +702,7 @@ async def stuff_update(
     name="Decode (Crypto)",
     integration_types=[discord.IntegrationType.user_install]
 )
-async def crypto_decode(
+async def context_decode(
     ctx: discord.ApplicationContext,
     message: discord.Message
 ):
@@ -724,6 +710,52 @@ async def crypto_decode(
     import crypto
     message = crypto.decode_crypto(message.content)
     await ctx.respond(content=message, ephemeral=True)
+
+# CONTEXT MENU: Submit quote
+@bot.message_command(
+    name="Submit Quote",
+    integration_types=[discord.IntegrationType.user_install]
+)
+async def context_quote(
+    ctx: discord.ApplicationContext,
+    message: discord.Message
+):
+    print("(C) Submitting quote to DB.")
+
+    # Get this guys stuff
+    clean_content = message.content.replace('"', '\"')
+    clean_uname = message.author.name.replace('"', '\"')
+
+    try:
+        # Connect to database.
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Store quote in the database
+        sql = f"INSERT INTO quotes (content, author, submitter_id) VALUES (%s, %s, %s)"
+        val = (clean_content, clean_uname, ctx.author.id)
+        cursor.execute(sql, val)
+        mydb.commit()
+
+        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
+        sql = f"SELECT COUNT(*) FROM quotes"
+        cursor.execute(sql)
+        id = cursor.fetchone()[0]
+        cursor.close()
+        mydb.close()
+        
+        await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{clean_content}\" - {author}*", ephemeral=True)
+        print(f"Tip {id} submitted successfully!")
+
+    except Exception as e:
+        print(f"Oh, fiddlesticks! What now... {e}?!")
+        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
+        cursor.close()
+        mydb.close()
 
 
 # Define special commands
