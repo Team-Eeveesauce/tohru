@@ -748,7 +748,7 @@ async def context_quote(
         cursor.close()
         mydb.close()
         
-        await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{clean_content}\" - {author}*", ephemeral=True)
+        await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{clean_content}\" - {clean_uname}*", ephemeral=True)
         print(f"Tip {id} submitted successfully!")
 
     except Exception as e:
