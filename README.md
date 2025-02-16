@@ -10,9 +10,9 @@ Mostly just designed to be used in the DTAG server, it can do certain things tha
   * CRYPTO integration (the [secret message tool](https://github.com/Team-Eeveesauce/crypto), not the currency.)
 
 ## Installation (Tohru)
-You'll need to install Python 3 onto your machine to use either of these. The exact version probably doesn't matter, but I use 3.11.
+You'll need to install Python 3 onto your machine to use either of these. The exact version probably doesn't matter, but I'm using 3.12.
 
-Next, there's a few packages that you'll need to install from pip, which you can do by running this: `pip3 install py-cord mysql-connector-python python-dotenv pymagick colorthief pillow wand`
+Next, there's a few packages that you'll need to install from pip, which you can do by running this: `pip3 install py-cord mysql-connector-python python-dotenv pymagick colorthief pillow wand pydub`
 
 You'll also need a MariaDB or MySQL installation setup on one of your computers. It doesn't have to be on the same machine as Tohru, but it should be locally available.
 
@@ -24,6 +24,9 @@ Finally, run the bot by typing `python3 tohru.py`. If that doesn't work, try `py
 Kanna is Tohru's Windows-based friend who does stuff that Tohru can't do, since Tohru is designed to run on Linux and not Windows.
 So, unless you run Tohru on a Linux system and also have a Windows system that you wanna use the same features as Kanna supports... it might not be entirely useful.
 
+Communication with the pair is quite limited, but it's not meant to be a deep integration, just like calling someone to do your work for you.
+I can't stop you, but please refrain from using Kanna over the internet. She may be a dragon, but she's not very secure.
+
 ## Installation (Kanna)
 You'll still need Python 3 on your machine, and you should probably use the same version as you used for Tohru.
 
@@ -33,7 +36,7 @@ All you have to do now is copy `.env.template` to `.env` and reconfigure, or cop
 
 At last, you can run the service by typing `python3 kanna.py` or `python kanna.py` in your terminal, or by double-clicking on it.
 
-## FAQ
+## PAQ (Potentially Asked Questions)
 **Q.** Why is it named Tohru?  
 **A.** Tohru is a dragon maid from the hit anime series Miss Kobayashi's Dragon Maid. This has many layers:
   * Miss Kobayashi's Dragon Maid was the first show to be added to the DTAG anime section.
@@ -42,10 +45,16 @@ At last, you can run the service by typing `python3 kanna.py` or `python kanna.p
   * Kanna is Tohru's little also-dragon friend.
 
 **Q.** Nerd.  
-**A.** Hey, you don't have to use it if you don't want to.
+**A.** Hey, you asked the question.
 
 **Q.** What if I only want to run Tohru and not Kanna?  
 **A.** Tohru will become emotionally unstable and may threaten to kill you.
 
 **Q.** How do I run Tohru/Kanna automatically in the background?  
 **A.** For Windows, the [Non-Sucking Service Manager](http://nssm.cc/) works. For Linux, [Supervisor](http://supervisord.org/) is pretty good.
+
+**Q.** How do I set up the MariaDB/MySQL for Tohru?
+**A.** Aha, that's a very good question! Uhhmmm... reverse-engineering? Sorry, I can't provide an up-to-date database structure because it changes too much... Unless someone personally asks me to.
+
+**Q.** How do I moderate whatever enters the database?
+**A.** There's an Update command for the Stuffpile, but everyone can access that. You'll just have to plunge into the database itself with HeidiSQL or phpMyAdmin, whatever suits you.
