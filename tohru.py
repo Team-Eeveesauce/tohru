@@ -125,8 +125,7 @@ async def restart_bot(ctx):
     await ctx.respond("Restarting Tohru...", ephemeral=True)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
     await bot.close()
-    # Restart the bot's Docker container
-    os.system("docker restart tohru_bot")
+    os.exit(1) # Crash the bot so whatever's running it can restart it.
 
 
 # Commands that ping stuff.

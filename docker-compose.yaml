@@ -20,7 +20,7 @@ services:
       GUILD_ID: ${GUILD_ID}
       KANNA_IP: ${KANNA_IP}
       PORT: ${PORT}
-      DB_HOST: ${DB_HOST}
+      DB_HOST: db
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
