@@ -64,8 +64,8 @@ At last, you can run the service by typing `python3 kanna.py` or `python kanna.p
 **A.** For Windows, the [Non-Sucking Service Manager](http://nssm.cc/) works. For Linux, [Supervisor](http://supervisord.org/) is pretty good.
 Alternatively, the Docker container can be configured to run whenever Docker is running, but that only works with Tohru for now.
 
-**Q.** How do I set up the MariaDB/MySQL for Tohru?
+**Q.** How do I set up the MariaDB/MySQL for Tohru?  
 **A.** I've provided a very neat (and convenient!!) `init.sql` file for your convenience. Just import it, create a user to access it, and profit!
 
-**Q.** How do I moderate whatever enters the database?
+**Q.** How do I moderate whatever enters the database?  
 **A.** There's an Update command for the Stuffpile, but everyone can access that. You'll just have to plunge into the database itself with HeidiSQL or phpMyAdmin, whatever suits you.
