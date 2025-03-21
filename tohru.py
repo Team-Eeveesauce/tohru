@@ -68,39 +68,6 @@ TIMEOUT = 5
 
 # Define all the commands:
 
-# Mount the drives that Ubuntu is too scared to.
-@bot.slash_command(
-    name="mount",
-    description="Mounts all drives in case of broken website.",
-    guild_ids=[GUILD_ID]
-)
-async def mount(ctx):
-    print("Executing mount command...")
-    response = runme("sudo mount -a")
-    await ctx.respond(response)
-
-# Instantly opens Death Stranding on the SAUCEY-PC.
-@bot.slash_command(
-    name="gaming",
-    description="Launches Death Stranding on Josh's computer.",
-    guild_ids=[GUILD_ID]
-)
-async def gaming(ctx):
-    print("Executing Death Stranding command.")
-    response = sendit(b"gaming")
-    await ctx.respond(response)
-
-# Downloads new videos from AstralSpiff.
-@bot.slash_command(
-    name="download_spigg",
-    description="Attempts to download any new AstralSpiff videos into the archives.",
-    guild_ids=[GUILD_ID]
-)
-async def download_spigg(ctx):
-    print("Executing YT-DLP (spigg) command.")
-    response = sendit(b"download_spigg")
-    await ctx.respond(response)
-
 # Repeat whatever is said.
 @bot.slash_command(
     name="echo",
@@ -113,19 +80,6 @@ async def echo(
 ):
     print("Executing ping command.")
     await ctx.respond(content=content)
-
-# Restarts the bot. Ends early so it looks nice on the Discord-side of things.
-@bot.slash_command(
-    name="restart",
-    description="Restarts the bot to reload any changes.",
-    guild_ids=[GUILD_ID]
-)
-async def restart_bot(ctx):
-    print("Restarting bot...")
-    await ctx.respond("Restarting Tohru...", ephemeral=True)
-    await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
-    await bot.close()
-    os.exit(1) # Crash the bot so whatever's running it can restart it.
 
 
 # Commands that ping stuff.
@@ -741,6 +695,29 @@ async def stuff_update(
         await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
         cursor.close()
         mydb.close()
+
+
+# Maintenance commands for admins.
+maintenance = bot.create_group(
+    name="maintenance",
+    description="Maintenance commands for admins.",
+    integration_types=[discord.IntegrationType.guild_install]
+)
+
+# Restarts the bot. Ends early so it looks nice on the Discord-side of things.
+@maintenance.command(
+    name="restart",
+    description="Restarts the bot to reload any changes.",
+    guild_ids=[GUILD_ID]
+)
+async def restart_bot(ctx):
+    print("Restarting bot...")
+    await ctx.respond("Restarting...", ephemeral=True)
+    time.sleep(1)
+    mydb.disconnect()
+
+    # Crash the bot so whatever's running it can restart it.
+    exit(1)
 
 
 # Epic context menu integration stuff (cool).
