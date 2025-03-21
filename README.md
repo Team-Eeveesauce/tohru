@@ -1,4 +1,6 @@
 # Tohru
+![Tohru](tohru.png)
+
 Tohru is a little Discord bot that doesn't do anything remotely useful.  
 Mostly just designed to be used in the DTAG server, it can do certain things that are largely unrelated.
 
