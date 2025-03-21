@@ -125,7 +125,8 @@ async def restart_bot(ctx):
     await ctx.respond("Restarting Tohru...", ephemeral=True)
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
     await bot.close()
-    response = runme("sudo supervisorctl restart tohru")
+    # Restart the bot's Docker container
+    os.system("docker restart tohru_bot")
 
 
 # Commands that ping stuff.
@@ -338,7 +339,6 @@ async def archives_fetch(
         else:
             db = "archives_audio"
 
-        # Connect to database
         try:
             cursor = mydb.cursor()
         except mysql.connector.Error as err:
@@ -819,8 +819,33 @@ def reconnect_to_db():
             password=os.getenv('DB_PASSWORD'),
             database=os.getenv('DB_NAME')
         )
+        print("Connected to database!")
     except mysql.connector.Error as err:
-        print(f"Error connecting to database: {err}")
+        print(f"Error reconnecting to database: {err}")
+        print("Restarting container...")
+        restart_bot()
+
+# Check if the database exists, and if not, reinitialize it.
+def check_and_import_db():
+    try:
+        cursor = mydb.cursor()
+        cursor.execute("SHOW TABLES;")
+        tables = cursor.fetchall()
+        if not tables:
+            print("Database is empty, importing init.sql...")
+            with open('init.sql', 'r') as file:
+                sql_script = file.read()
+            for statement in sql_script.split(';'):
+                if statement.strip():
+                    cursor.execute(statement)
+            mydb.commit()
+            print("Database initialized successfully!")
+        else:
+            print("Database already exists.")
+        cursor.close()
+    except mysql.connector.Error as err:
+        print(f"Error checking database: {err}")
+        print("THIS MIGHT CAUSE WEIRD THINGS TO HAPPEN IF YOU DON'T FIX IT!!")
 
 # Run a command on this machine.
 def runme(command):
@@ -925,7 +950,11 @@ async def on_ready():
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="your every move."))
 
 
-# And now we run it!
+# Just wait a moment for the DB to kick in...
+time.sleep(5)
 reconnect_to_db()
+check_and_import_db()
+
+# And now we run it!
 print("Bot running!")
 bot.run(BOT_TOKEN)

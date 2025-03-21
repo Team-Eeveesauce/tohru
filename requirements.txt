@@ -1,0 +1,8 @@
+py-cord
+mysql-connector-python
+python-dotenv
+pymagick
+colorthief
+pillow
+wand
+pydub

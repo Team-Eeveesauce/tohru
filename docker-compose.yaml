@@ -1,0 +1,41 @@
+services:
+  db:
+    image: mariadb:latest
+    container_name: tohru_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - tohru
+
+  bot:
+    build: .
+    container_name: tohru_bot
+    environment:
+      BOT_TOKEN: ${BOT_TOKEN}
+      GUILD_ID: ${GUILD_ID}
+      KANNA_IP: ${KANNA_IP}
+      PORT: ${PORT}
+      DB_HOST: ${DB_HOST}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+    volumes:
+      - ./uploads:/app/uploads
+      - .:/app
+    depends_on:
+      - db
+    restart:
+      on-failure
+    networks:
+      - tohru
+
+volumes:
+  db_data:
+
+networks:
+  tohru:
