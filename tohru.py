@@ -165,7 +165,6 @@ async def archives_upload(
 ):
     print("Upload command called!")
     await ctx.defer(ephemeral=True)
-    print("Responded in time! AS ALWAYS, DISCORD!!")
 
     try:
         # Get current timestamp
@@ -196,10 +195,9 @@ async def archives_upload(
                         magick_img.save(filename=comp_path)
                     print("Image compressed using PyMagick!")
                 except Exception as e:
-                    # USE THIS WHEN DEBUGGING await ctx.respond(content=f"Something went wrong processing the image: {e}")
                     await ctx.respond(content="Something went wrong processing the image. Your submission has NOT been saved.")
                     print(f"Image NOT compressed! {e}")
-                    return  # End command execution if compression failed
+                    return
 
             elif mime_type.startswith("audio/"): # INCOMING AUDIO!!
                 print(f"Incoming AUDIO... {saved_path}")
@@ -211,21 +209,19 @@ async def archives_upload(
                 try:
                     audio = AudioSegment.from_file(saved_path)
 
-                    # Convert to mono and slightly downsample for some degradation
+                    # Crunch the audio for maximum effect!
                     audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
-
-                    # Apply slight filtering to mimic early 2000s MP3 compression
                     audio = audio.low_pass_filter(7000).high_pass_filter(100)
 
-                    # Export with 64kbps MP3 compression
-                    audio.export(comp_path, format="mp3", bitrate="64k")
+                    # Now export the audio!
+                    out_ = audio.export(comp_path, format="mp3", bitrate="64k")
+                    out_.close()
 
                     print("Audio compressed at 64kbps MP3!")
                 except Exception as e:
                     await ctx.respond(content="Something went wrong processing the audio. Your submission has NOT been saved.")
                     print(f"Audio NOT compressed! {e}")
-                    return  # End command execution if compression failed
-
+                    return
             else:
                 print("Unsupported filetype, aborting...")
                 await ctx.respond(content=f"Uh oh, something went wrong.\nMaybe the filetype is unsupported?")
@@ -256,7 +252,6 @@ async def archives_upload(
         upload_id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
-        print("HOLY BALLS WE DID IT")
         
         # Send image
         if caption:
@@ -389,7 +384,6 @@ async def tips_submit(
         id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
-        print("HOLY BALLS WE DID IT")
 
         if type == "Tip":
             await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> {content}", ephemeral=True)
@@ -536,7 +530,6 @@ async def stuff_submit(
         id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
-        print("HOLY BALLS WE DID IT")
 
         # Prepare it to send off to the user!
         embed = prepare_embed(name, description, hexcode, fact, id, filename)
@@ -682,7 +675,6 @@ async def stuff_update(
         mydb.commit()
         cursor.close()
         mydb.close()
-        print("HOLY BALLS WE DID IT")
 
         # Prepare it to send off to the user!
         embed = prepare_embed(name, description, hexcode, fact, id, filename)
@@ -795,31 +787,43 @@ def reconnect_to_db():
             password=os.getenv('DB_PASSWORD'),
             database=os.getenv('DB_NAME')
         )
+
+        # Check if our tables exist.
+        cursor = mydb.cursor()
+        cursor.execute(f"USE {os.getenv('DB_NAME')}")
+        cursor.execute("SHOW TABLES")
+        tables = cursor.fetchall()
+        if not tables:
+            init_db()
+        cursor.close()
         print("Connected to database!")
 
     # But if anything were to go very wrong...
     except mysql.connector.Error as err:
-        if err.errno == 1049:  # This is the error code for "Unknown database". Let's try recreating it!
-            print(f"Database '{os.getenv('DB_NAME')}' not found! Attempting to recreate it...")
-            try:
-                cursor = mydb.cursor()
-                with open('init.sql', 'r') as file:
-                    sql_script = file.read()
-                for statement in sql_script.split(';'):
-                    if statement.strip():
-                        cursor.execute(statement)
-                mydb.commit()
-                # If you end up here, you should be very happy.
-                print("Database initialized successfully!")
-                cursor.close()
-            except mysql.connector.Error as err:
-                # If you end up here, you should be very confused.
-                print(f"Error recreating database: {err}")
-                print("THIS MIGHT CAUSE WEIRD THINGS TO HAPPEN IF YOU DON'T FIX IT!!")
+        if err.errno == 1049:  # This is the error code for "Unknown database", so let's try recreating it!
+            init_db()
         else:
             # If you end up here, you should be very frustrated.
             print(f"Error connecting to database: {err}")
             restart_bot()
+
+def init_db():
+    print("Attempting to recreate database from schema in init.sql...")
+    try:
+        cursor = mydb.cursor()
+        with open('init.sql', 'r') as file:
+            sql_script = file.read()
+        for statement in sql_script.split(';'):
+            if statement.strip():
+                cursor.execute(statement)
+        mydb.commit()
+        # If you end up here, you should be very happy.
+        print("Database initialized successfully!")
+        cursor.close()
+    except mysql.connector.Error as err:
+        # If you end up here, you should be very confused.
+        print(f"Error recreating database: {err}")
+        print("THIS MIGHT CAUSE WEIRD THINGS TO HAPPEN IF YOU DON'T FIX IT!!")
 
 # Run a command on this machine.
 def runme(command):
@@ -904,7 +908,7 @@ async def on_message(message):
                 await message.channel.send(random.choice(responses))
                 return
             if 'yourself' in msg:
-                await message.channel.send('Well that\'s not very nice...')
+                # Don't respond to hate.
                 return
             await message.channel.send('You want me to *kill someone*?!... Okay! :knife:')
             return
