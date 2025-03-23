@@ -2,11 +2,9 @@
 FROM python:3.12-slim
 
 # Install system dependencies for image processing & audio processing
-RUN apt-get update && apt-get install -y \
-    libmagic1 \
-    libmariadb-dev \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
-    libmagickwand-dev \
+    imagemagick \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 

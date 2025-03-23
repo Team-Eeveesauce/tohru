@@ -43,7 +43,6 @@ import socket
 import time
 
 # for archives/stuffpile upload stuff
-import pymagick
 import mysql.connector
 from datetime import datetime
 from colorthief import ColorThief
