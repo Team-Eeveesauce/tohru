@@ -789,6 +789,7 @@ async def context_quote(
 def reconnect_to_db():
     global mydb  # Use global keyword to modify the global variable
     try:
+        # Attempt to connect to our database.
         mydb = mysql.connector.connect(
             host=os.getenv('DB_HOST'),
             user=os.getenv('DB_USER'),
@@ -796,32 +797,30 @@ def reconnect_to_db():
             database=os.getenv('DB_NAME')
         )
         print("Connected to database!")
-    except mysql.connector.Error as err:
-        print(f"Error reconnecting to database: {err}")
-        print("Restarting container...")
-        restart_bot()
 
-# Check if the database exists, and if not, reinitialize it.
-def check_and_import_db():
-    try:
-        cursor = mydb.cursor()
-        cursor.execute("SHOW TABLES;")
-        tables = cursor.fetchall()
-        if not tables:
-            print("Database is empty, importing init.sql...")
-            with open('init.sql', 'r') as file:
-                sql_script = file.read()
-            for statement in sql_script.split(';'):
-                if statement.strip():
-                    cursor.execute(statement)
-            mydb.commit()
-            print("Database initialized successfully!")
-        else:
-            print("Database already exists.")
-        cursor.close()
+    # But if anything were to go very wrong...
     except mysql.connector.Error as err:
-        print(f"Error checking database: {err}")
-        print("THIS MIGHT CAUSE WEIRD THINGS TO HAPPEN IF YOU DON'T FIX IT!!")
+        if err.errno == 1049:  # This is the error code for "Unknown database". Let's try recreating it!
+            print(f"Database '{os.getenv('DB_NAME')}' not found! Attempting to recreate it...")
+            try:
+                cursor = mydb.cursor()
+                with open('init.sql', 'r') as file:
+                    sql_script = file.read()
+                for statement in sql_script.split(';'):
+                    if statement.strip():
+                        cursor.execute(statement)
+                mydb.commit()
+                # If you end up here, you should be very happy.
+                print("Database initialized successfully!")
+                cursor.close()
+            except mysql.connector.Error as err:
+                # If you end up here, you should be very confused.
+                print(f"Error recreating database: {err}")
+                print("THIS MIGHT CAUSE WEIRD THINGS TO HAPPEN IF YOU DON'T FIX IT!!")
+        else:
+            # If you end up here, you should be very frustrated.
+            print(f"Error connecting to database: {err}")
+            restart_bot()
 
 # Run a command on this machine.
 def runme(command):
@@ -929,7 +928,6 @@ async def on_ready():
 # Just wait a moment for the DB to kick in...
 time.sleep(5)
 reconnect_to_db()
-check_and_import_db()
 
 # And now we run it!
 print("Bot running!")

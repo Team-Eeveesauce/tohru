@@ -17,11 +17,8 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy your bot code into the container
+# Copy our bot code into the container
 COPY . .
-
-# Make directories for persistent storage
-VOLUME ["/app/uploads", "/app/backups"]
 
 # Run your bot
 CMD ["python", "-u", "tohru.py"]

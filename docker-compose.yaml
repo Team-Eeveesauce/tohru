@@ -2,6 +2,8 @@ services:
   db:
     image: mariadb:latest
     container_name: tohru_db
+    env_file:
+    - .env
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: ${DB_NAME}
@@ -15,17 +17,10 @@ services:
   bot:
     build: .
     container_name: tohru_bot
-    environment:
-      BOT_TOKEN: ${BOT_TOKEN}
-      GUILD_ID: ${GUILD_ID}
-      KANNA_IP: ${KANNA_IP}
-      PORT: ${PORT}
-      DB_HOST: db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+    env_file:
+    - .env
     volumes:
-      - ./uploads:/app/uploads
+      - uploads:/app/uploads
       - .:/app
     depends_on:
       - db
@@ -36,6 +31,7 @@ services:
 
 volumes:
   db_data:
+  uploads:
 
 networks:
   tohru:
