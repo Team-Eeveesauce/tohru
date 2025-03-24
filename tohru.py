@@ -713,7 +713,8 @@ async def restart_bot(ctx):
 
 @bot.slash_command(
     name="index",
-    description="Print a Table of Contents for items in the archives/stuffpile.")
+    description="Print a Table of Contents for items in the archives/stuffpile.",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install])
 async def index(
     ctx: discord.ApplicationContext,
     db: Option(str, "The database to view.", choices={'archives_image', 'archives_audio', 'stuff'}, required=True),
