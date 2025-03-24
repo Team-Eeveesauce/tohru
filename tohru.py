@@ -36,6 +36,7 @@ from dotenv import load_dotenv
 import discord  # pip install pycord
 from discord.ext import commands
 from discord import Option
+from discord.ui import View, Button
 
 # for connection to sauceypc
 import subprocess
@@ -710,6 +711,53 @@ async def restart_bot(ctx):
     # Crash the bot so whatever's running it can restart it.
     exit(1)
 
+@bot.slash_command(
+    name="index",
+    description="Print a Table of Contents for items in the archives/stuffpile.")
+async def index(
+    ctx: discord.ApplicationContext,
+    db: Option(str, "The database to view.", choices={'archives_image', 'archives_audio', 'stuff'}, required=True),
+    user: Option(discord.User, "The user to view entries for.", required=False)
+    ):
+    try:
+        # It'll freak out if we don't do this.
+        reconnect_to_db()
+        cursor = mydb.cursor()
+        command = ""
+
+        print(f"Index command called for {db}...")
+
+        # Certain DBs have different column names... but the same kind of data!
+        if db in ['archives_image', 'archives_audio']:
+            command = "SELECT id, caption AS name FROM " + db
+        elif db == 'stuff':
+            command = "SELECT id, name FROM " + db
+
+        # And if we're only looking at this one guy's stuff...
+        if user:
+            command = command + f" WHERE submitter_id = {user.id}"
+
+        # And thus, we search for entries! And knowledge!!
+        cursor.execute(command)
+        entries = [(row[0], row[1]) for row in cursor.fetchall()]
+        cursor.close()
+        mydb.close()
+
+        # Didn't find anything? That's too bad.
+        if not entries:
+            return await ctx.respond("No entries found in the database.")
+
+        # Display that stuff!
+        paginator = Paginator(entries)
+        paginator.ctx = ctx
+        paginator.message = await ctx.respond(embed=paginator.create_embed(), view=paginator)
+
+    except Exception as e:
+        print(f"Error retrieving entries: {e}")
+        await ctx.respond(f"Uh oh, something went wrong: {e}")
+        cursor.close()
+        mydb.close()
+
 
 # Epic context menu integration stuff (cool).
 
@@ -921,6 +969,60 @@ async def on_message(message):
             responses = ["I'll never forgive you... :frowning2:", "It's alright, I guess... :frowning:", "It's okay! :smile:"]
             await message.channel.send(random.choice(responses))
             return
+
+# Paginator for seeing archives entries
+class Paginator(View):
+    def __init__(self, entries, per_page=25):
+        super().__init__()
+        self.entries = entries
+        self.per_page = per_page
+        self.current_page = 0
+        self.total_pages = (len(entries) - 1) // per_page + 1
+        self.update_buttons()
+
+    async def interaction_check(self, interaction):
+        # If the OG user is the one pushing the button, let's roll.
+        print(f"Button pressed! {self.ctx.author} == {interaction.user}?")
+        if interaction.user == self.ctx.author:
+            if interaction.custom_id == "previous":
+                print("Going back to the previous page!")
+                await self.turn_page(interaction, -1)
+            elif interaction.custom_id == "next":
+                print("Going forward to the next page!")
+                await self.turn_page(interaction, 1)
+        return False
+
+    async def on_timeout(self):
+        # Don't hold onto the past. You need to let it go.
+        for item in self.children:
+            item.disabled = True
+        await self.message.edit(view=self)
+
+    async def turn_page(self, interaction, direction):
+        # Go to the next/previous page and update the buttons.
+        self.current_page += direction
+        self.update_buttons()
+        embed = self.create_embed()
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    def update_buttons(self):
+        # Clear the current buttons and add new ones based on where we are in spacetime.
+        self.clear_items()
+        if self.current_page > 0:
+            self.add_item(Button(label="Previous", style=discord.ButtonStyle.primary, custom_id="previous"))
+        if self.current_page < self.total_pages - 1:
+            self.add_item(Button(label="Next", style=discord.ButtonStyle.primary, custom_id="next"))
+
+    def create_embed(self):
+        # List all of our stuff, and make it look all fancy, ooh.
+        start = self.current_page * self.per_page
+        end = start + self.per_page
+        entries = self.entries[start:end]
+        formatted_entries = [f"**{id}:** {name}" for id, name in entries]
+        embed = discord.Embed(title="Table of Contents", description="\n".join(formatted_entries))
+        embed.set_footer(text=f"Page {self.current_page + 1} of {self.total_pages}")
+        return embed
+
 
 # When the bot is ready to take on the world...
 @bot.event
