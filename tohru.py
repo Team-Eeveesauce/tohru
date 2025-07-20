@@ -104,6 +104,9 @@ async def ping_tohru(ctx):
     description="Checks if the helper service is awake."
 )
 async def ping_kanna(ctx):
+    if KANNA_IP == "KANNA_IP_HERE":
+        await ctx.respond("Kanna has been disabled for now.\n She's uh, probably sleeping.")
+        return
     print("Executing connection command.")
     await ctx.defer()
     response = sendit(b"connect")
@@ -167,105 +170,19 @@ async def archives_upload(
     print("Upload command called!")
     await ctx.defer(ephemeral=True)
 
-    try:
-        # Get current timestamp
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    response, error, comp_path, caption, upload_id = await submit_to_archives(file, caption, ctx.author.id)
+    
+    # If it's gone oh so horribly wrong, break the bad news.
+    if error:
+        await ctx.respond(content=response)
+        return
 
-        # Generate 4 random characters
-        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
-
-        filename = f"{timestamp}_{random_suffix}_{file.filename}" 
-        saved_path = f"uploads/{filename}"
-        await file.save(saved_path)
-        print("File saved!")
-
-        # Determine whether it's an image, audio, or neither.
-        mime_type, _ = mimetypes.guess_type(saved_path)
-        if mime_type:
-            if mime_type.startswith("image/"): # INCOMING IMAGE!!
-                print(f"Incoming IMAGE... {saved_path}")
-                db = "archives_image"
-                comp_path = f"uploads/{filename}.jpg"
-
-                # Compress the image
-                try:
-                    from wand.image import Image as MagickImage
-                    with MagickImage(filename=f"{saved_path}[0]") as magick_img:
-                        magick_img.format = 'jpeg'
-                        magick_img.compression_quality = 2  # Adjust quality as needed, but make sure it looks REALLY HORRIBLE. That's the whole point of the archives.
-                        magick_img.save(filename=comp_path)
-                    print("Image compressed using PyMagick!")
-                except Exception as e:
-                    await ctx.respond(content="Something went wrong processing the image. Your submission has NOT been saved.")
-                    print(f"Image NOT compressed! {e}")
-                    return
-
-            elif mime_type.startswith("audio/"): # INCOMING AUDIO!!
-                print(f"Incoming AUDIO... {saved_path}")
-                # Add audio processing logic here
-                db = "archives_audio"
-                comp_path = f"uploads/{filename}.mp3"
-
-                # Compress the audio
-                try:
-                    audio = AudioSegment.from_file(saved_path)
-
-                    # Crunch the audio for maximum effect!
-                    audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
-                    audio = audio.low_pass_filter(7000).high_pass_filter(100)
-
-                    # Now export the audio!
-                    out_ = audio.export(comp_path, format="mp3", bitrate="64k")
-                    out_.close()
-
-                    print("Audio compressed at 64kbps MP3!")
-                except Exception as e:
-                    await ctx.respond(content="Something went wrong processing the audio. Your submission has NOT been saved.")
-                    print(f"Audio NOT compressed! {e}")
-                    return
-            else:
-                print("Unsupported filetype, aborting...")
-                await ctx.respond(content=f"Uh oh, something went wrong.\nMaybe the filetype is unsupported?")
-                return
-        else:
-            print("Could not determine file type, aborting...")
-            await ctx.respond(content=f"Uh oh, something went wrong.\nAre you sure you're uploading an image or audio file?")
-            return
-
-
-        # Connect to database.
-        try:
-            cursor = mydb.cursor()
-        except mysql.connector.Error as err:
-            print(f"Error connecting to DB: {err}")
-            reconnect_to_db()
-            cursor = mydb.cursor()
-
-        # Store file info in the database
-        sql = f"INSERT INTO {db} (path, original_path, caption, submitter_id) VALUES (%s, %s, %s, %s)"
-        val = (comp_path, saved_path, caption.replace('"', '\"'), ctx.author.id)  
-        cursor.execute(sql, val)
-        mydb.commit()
-
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM {db}"
-        cursor.execute(sql)
-        upload_id = cursor.fetchone()[0]
-        cursor.close()
-        mydb.close()
-        
-        # Send image
-        if caption:
-            await ctx.respond(content=f"File is now safe in the archives! ID: {upload_id}\n> {caption}",file=discord.File(comp_path))
-        else:
-            await ctx.respond(content=f"File is now safe in the archives! ID: {upload_id}",file=discord.File(comp_path))
-        print(f"Archives ID {upload_id} sent successfully!")
-
-    except Exception as e:
-        print(f"Oh god, what now... {e}?!")
-        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
-        cursor.close()
-        mydb.close()
+    # Otherwise? We're swimmin'.
+    if caption:
+        await ctx.respond(content=f"File is now safe in the archives! ID: {upload_id}\n> {caption}",file=discord.File(comp_path))
+    else:
+        await ctx.respond(content=f"File is now safe in the archives! ID: {upload_id}",file=discord.File(comp_path))
+    print(f"Archives ID {upload_id} sent successfully!")
 
 # Archives retrieval fun
 @archives.command(
@@ -822,8 +739,133 @@ async def context_quote(
         cursor.close()
         mydb.close()
 
+# CONTEXT MENU: Submit to archives
+@bot.message_command(
+    name="Submit to Archives",
+    integration_types=[discord.IntegrationType.user_install]
+)
+async def context_archive(
+    ctx: discord.ApplicationContext,
+    message: discord.Message
+):
+    print("(C) Submitting to archives...")
+    await ctx.defer(ephemeral=True)
+
+    # Get the attachment from the message.
+    attachment = message.attachments[0] if message.attachments else None
+    if not attachment:
+        await ctx.respond(content="No attachments found.", ephemeral=True)
+        return
+
+    response, error, comp_path, caption, upload_id = await submit_to_archives(attachment, message.content or "(C) No caption provided.", ctx.author.id)
+    
+    # If it's gone oh so horribly wrong, break the bad news.
+    if error:
+        await ctx.respond(content=response)
+        return
+
+    # Otherwise? We're swimmin'.
+    if caption:
+        await ctx.respond(content=f"File is now safe in the archives! ID: {upload_id}\n> {caption}",file=discord.File(comp_path))
+    else:
+        await ctx.respond(content=f"File is now safe in the archives! ID: {upload_id}",file=discord.File(comp_path))
+    print(f"(C) Archives ID {upload_id} saved successfully!")
+    
 
 # Define special commands
+
+# Submit to archives!
+async def submit_to_archives(file, caption, author_id):
+    try:
+        # Get current timestamp
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+        # Generate 4 random characters
+        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
+
+        filename = f"{timestamp}_{random_suffix}_{file.filename}" 
+        saved_path = f"uploads/{filename}"
+        await file.save(saved_path)
+        print("File saved!")
+
+        # Determine whether it's an image, audio, or neither.
+        mime_type, _ = mimetypes.guess_type(saved_path)
+        if mime_type:
+            if mime_type.startswith("image/"): # INCOMING IMAGE!!
+                print(f"Incoming IMAGE... {saved_path}")
+                db = "archives_image"
+                comp_path = f"uploads/{filename}.jpg"
+
+                # Compress the image
+                try:
+                    from wand.image import Image as MagickImage
+                    with MagickImage(filename=f"{saved_path}[0]") as magick_img:
+                        magick_img.format = 'jpeg'
+                        magick_img.compression_quality = 2  # Adjust quality as needed, but make sure it looks REALLY HORRIBLE. That's the whole point of the archives.
+                        magick_img.save(filename=comp_path)
+                    print("Image compressed using PyMagick!")
+                except Exception as e:
+                    print(f"Image NOT compressed! {e}")
+                    return "Something went wrong processing the image. Your submission has NOT been saved.", True, None, None, None
+
+            elif mime_type.startswith("audio/"): # INCOMING AUDIO!!
+                print(f"Incoming AUDIO... {saved_path}")
+                # Add audio processing logic here
+                db = "archives_audio"
+                comp_path = f"uploads/{filename}.mp3"
+
+                # Compress the audio
+                try:
+                    audio = AudioSegment.from_file(saved_path)
+
+                    # Crunch the audio for maximum effect!
+                    audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
+                    audio = audio.low_pass_filter(7000).high_pass_filter(100)
+
+                    # Now export the audio!
+                    out_ = audio.export(comp_path, format="mp3", bitrate="64k")
+                    out_.close()
+
+                    print("Audio compressed at 64kbps MP3!")
+                except Exception as e:
+                    print(f"Audio NOT compressed! {e}")
+                    return "Something went wrong processing the audio. Your submission has NOT been saved.", True, None, None, None
+            else:
+                print("Unsupported filetype, aborting...")
+                return "Uh oh, something went wrong.\nMaybe the filetype is unsupported?", True, None, None, None
+        else:
+            print("Could not determine file type, aborting...")
+            return "Uh oh, something went wrong.\nAre you sure you're uploading an image or audio file?", True, None, None, None
+
+        # Connect to database.
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Store file info in the database
+        sql = f"INSERT INTO {db} (path, original_path, caption, submitter_id) VALUES (%s, %s, %s, %s)"
+        val = (comp_path, saved_path, caption.replace('"', '\"'), author_id)  
+        cursor.execute(sql, val)
+        mydb.commit()
+
+        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
+        sql = f"SELECT COUNT(*) FROM {db}"
+        cursor.execute(sql)
+        upload_id = cursor.fetchone()[0]
+        cursor.close()
+        mydb.close()
+
+        # Prep response
+        return None, False, comp_path, caption or None, upload_id
+    
+    except Exception as e:
+        print(f"Oh god, what now... {e}?!")
+        cursor.close()
+        mydb.close()
+        return "Uh oh, something went wrong: {e}. Please try again.", True, None, None, None
 
 # Database Connection Setup
 def reconnect_to_db():
