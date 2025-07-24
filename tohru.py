@@ -377,6 +377,134 @@ async def tips_roll(
         mydb.close()
 
 
+# Commands involving the pool system.
+pool = bot.create_group(
+    name="pool",
+    description="Your own personal notepad!",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install]
+)
+
+# Pool creation fun
+@pool.command(
+    name="create",
+    description="Create a new pool to hold your stuff."
+)
+async def pool_create(
+    ctx: discord.ApplicationContext,
+    pool: Option(str, "Names must be uniques, we recommend adding your own prefix to avoid conflicts.", required=True, max_length=4),
+    visible: Option(bool, "Should this pool be visible to others? They will also be able to modify it.", default=True)
+):
+    print(f"User {ctx.author.id} is creating a new pool; {pool}!")
+    await ctx.defer(ephemeral=True)
+
+    try:
+        # Connect to database.
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Check if the pool already exists
+        sql = "SELECT COUNT(*) FROM pools WHERE pool = %s"
+        val = (pool,)
+        cursor.execute(sql, val)
+        pool_exists = cursor.fetchone()[0] > 0
+        if pool_exists:
+            await ctx.respond(content=f"Pool '{pool}' already exists! Please choose a different name.", ephemeral=True)
+            cursor.close()
+            mydb.close()
+            print(f"Nevermind! {pool} already exists!")
+            return  
+
+        # Create the pool in the database
+        sql = "INSERT INTO pools (name, owner_id, visible) VALUES (%s, %s, %s)"
+        val = (pool, ctx.author.id, visible)
+        cursor.execute(sql, val)
+        mydb.commit()
+
+        print(f"User {ctx.author.id} created pool {pool} successfully!")
+        await ctx.respond(content=f"Your pool '{pool}' has been created!", ephemeral=True)
+        cursor.close()
+        mydb.close()
+    except Exception as e:
+        print(f"Oh, fiddlesticks! What now... {e}?!")
+        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
+        cursor.close()
+        mydb.close()
+
+# Pool submission fun
+@pool.command(
+    name="submit",
+    description="Submit something into one of your pools."
+)
+async def pool_submit(
+    ctx: discord.ApplicationContext,
+    pool: Option(str, "Which of your pools would you like to use?", required=True, max_length=4),
+    content: Option(str, "Type your submission here.", required=True, max_length=4096)
+):
+    print(f"User {ctx.author.id} is submitting into {pool}!")
+    await ctx.defer(ephemeral=True)
+
+    try:
+        # Connect to database.
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Check if the pool exists
+        sql = "SELECT COUNT(*) FROM pools WHERE pool = %s"
+        val = (pool,)
+        cursor.execute(sql, val)
+        pool_exists = cursor.fetchone()[0] > 0
+        if not pool_exists:
+            await ctx.respond(content=f"Pool '{pool}' does not exist! Please create it first.", ephemeral=True)
+            cursor.close()
+            mydb.close()
+            print(f"Nevermind! {pool} does not exist!")
+            return
+        
+        # Check if the user is permitted to submit to this pool, or if it is public.
+        sql = "SELECT visible FROM pools WHERE pool = %s"
+        val = (pool,)
+        cursor.execute(sql, val)
+        visible = cursor.fetchone()[0]
+
+        if not visible:
+            # Check if the user is the owner of this pool.
+            sql = "SELECT owner_id FROM pools WHERE pool = %s"
+            cursor.execute(sql, val)
+            owner_id = cursor.fetchone()[0]
+            if owner_id != ctx.author.id:
+                await ctx.respond(content=f"You do not have permission to submit to pool '{pool}'.", ephemeral=True)
+                cursor.close()
+                mydb.close()
+                print(f"Blocked! User {ctx.author.id} lacks permission to modify {pool}!")
+                return
+
+        # Store tip in the database
+        sql = f"INSERT INTO pools_content (pool_id, content, submitter_id) VALUES (%s, %s, %s)"
+        val = (pool, content.replace('"', '\"'), ctx.author.id)  # Escape single quotes
+        cursor.execute(sql, val)
+        mydb.commit()
+
+        print(f"User {ctx.author.id} submitted to pool {pool} successfully!")
+        await ctx.respond(content=f"Your submission has been saved to pool '{pool}'!", ephemeral=True)
+        cursor.close()
+        mydb.close()
+
+    except Exception as e:
+        print(f"Oh, fiddlesticks! What now... {e}?!")
+        await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
+        cursor.close()
+        mydb.close()
+
+
+
 # Commands involving the Stuffpile (TM).
 stuff = bot.create_group(
     name="stuff",
