@@ -5,3 +5,4 @@ colorthief
 pillow
 wand
 pydub
+filetype

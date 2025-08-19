@@ -49,7 +49,7 @@ from datetime import datetime
 from colorthief import ColorThief
 from PIL import ImageColor
 from wand.image import Image as MagickImage
-import mimetypes
+import filetype # pip install filetype
 from pydub import AudioSegment # pip install pydub
 
 # Intents because we need them apparently
@@ -789,10 +789,12 @@ async def submit_to_archives(file, caption, author_id):
         print("File saved!")
 
         # Determine whether it's an image, audio, or neither.
-        mime_type, _ = mimetypes.guess_type(saved_path)
-        if mime_type:
+        kind = filetype.guess(saved_path)
+        if kind is not None:
+            mime_type = kind.mime
+            
             if mime_type.startswith("image/"): # INCOMING IMAGE!!
-                print(f"Incoming IMAGE... {saved_path}")
+                print(f"Incoming {mime_type}... {saved_path}")
                 db = "archives_image"
                 comp_path = f"uploads/{filename}.jpg"
 
@@ -809,7 +811,7 @@ async def submit_to_archives(file, caption, author_id):
                     return "Something went wrong processing the image. Your submission has NOT been saved.", True, None, None, None
 
             elif mime_type.startswith("audio/"): # INCOMING AUDIO!!
-                print(f"Incoming AUDIO... {saved_path}")
+                print(f"Incoming {mime_type}... {saved_path}")
                 # Add audio processing logic here
                 db = "archives_audio"
                 comp_path = f"uploads/{filename}.mp3"
@@ -835,7 +837,7 @@ async def submit_to_archives(file, caption, author_id):
                 return "Uh oh, something went wrong.\nMaybe the filetype is unsupported?", True, None, None, None
         else:
             print("Could not determine file type, aborting...")
-            return "Uh oh, something went wrong.\nAre you sure you're uploading an image or audio file?", True, None, None, None
+            return f"Sorry, we can't figure out what type of file you're uploading!", True, None, None, None
 
         # Connect to database.
         try:
