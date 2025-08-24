@@ -820,7 +820,7 @@ async def submit_to_archives(file, caption, author_id):
 
                 # Compress the audio
                 try:
-                    audio = AudioSegment.from_file(saved_path)
+                    audio = AudioSegment.from_file(f"{saved_path}.wav")
 
                     # Crunch the audio for maximum effect!
                     audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
@@ -887,7 +887,7 @@ async def synthesize_midi(input):
     # Save as WAV
     output = input + ".wav"
     sf.write(output, audio, 44100)
-    return output
+    return input # this is not a mistake; when requesting the original version of the file, it should return the midi, not the intermediate wav.
 
 # Download a file into the uploads directory.
 async def download_file(file):

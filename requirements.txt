@@ -8,3 +8,5 @@ pydub
 filetype
 pretty_midi
 soundfile
+setuptools
+pyfluidsynth
