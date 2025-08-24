@@ -6,3 +6,5 @@ pillow
 wand
 pydub
 filetype
+pretty_midi
+soundfile

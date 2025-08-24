@@ -50,7 +50,11 @@ from colorthief import ColorThief
 from PIL import ImageColor
 from wand.image import Image as MagickImage
 import filetype # pip install filetype
+
+# for audio/midi conversion
 from pydub import AudioSegment # pip install pydub
+import pretty_midi
+import soundfile as sf
 
 # Intents because we need them apparently
 intents = discord.Intents.default()
@@ -63,8 +67,8 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 GUILD_ID = os.getenv('GUILD_ID')
 KANNA_IP = os.getenv('KANNA_IP')
 PORT = int(os.getenv('PORT'))
+SOUNDFONT = os.getenv('SOUNDFONT')
 TIMEOUT = 5
-
 
 # Define all the commands:
 
@@ -777,16 +781,7 @@ async def context_archive(
 # Submit to archives!
 async def submit_to_archives(file, caption, author_id):
     try:
-        # Get current timestamp
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-        # Generate 4 random characters
-        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
-
-        filename = f"{timestamp}_{random_suffix}_{file.filename}" 
-        saved_path = f"uploads/{filename}"
-        await file.save(saved_path)
-        print("File saved!")
+        saved_path, filename = await download_file(file)
 
         # Determine whether it's an image, audio, or neither.
         kind = filetype.guess(saved_path)
@@ -815,6 +810,13 @@ async def submit_to_archives(file, caption, author_id):
                 # Add audio processing logic here
                 db = "archives_audio"
                 comp_path = f"uploads/{filename}.mp3"
+
+                # WAIT! Is it a MIDI file?
+                if mime_type == "audio/midi" or "audio/x-midi":
+                    # Aw sweet let's go render us some midis
+                    saved_path = await synthesize_midi(saved_path)
+                    if not saved_path:
+                        return False
 
                 # Compress the audio
                 try:
@@ -869,6 +871,39 @@ async def submit_to_archives(file, caption, author_id):
         mydb.close()
         return "Uh oh, something went wrong: {e}. Please try again.", True, None, None, None
 
+# MIDI Synthesis
+async def synthesize_midi(input):
+    # Load the MIDI file
+    midi = pretty_midi.PrettyMIDI(input)
+
+    # Check for soundfont file
+    if not SOUNDFONT:
+        # Use default soundfont (boring)
+        audio = midi.fluidsynth(fs=44100)
+    else:
+        # Use custom soundfont (awesome)
+        audio = midi.fluidsynth(fs=44100, sf2_path=SOUNDFONT)
+
+    # Save as WAV
+    output = input + ".wav"
+    sf.write(output, audio, 44100)
+    return output
+
+# Download a file into the uploads directory.
+async def download_file(file):
+    # Get current timestamp
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    # Generate 4 random characters
+    random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
+
+    filename = f"{timestamp}_{random_suffix}_{file.filename}" 
+    saved_path = f"uploads/{filename}"
+    await file.save(saved_path)
+    print("File saved!")
+
+    return saved_path, filename
+
 # Database Connection Setup
 def reconnect_to_db():
     global mydb  # Use global keyword to modify the global variable
@@ -900,6 +935,7 @@ def reconnect_to_db():
             print(f"Error connecting to database: {err}")
             restart_bot()
 
+# Initialize the database from the schema in init.sql, in the case it doesn't exist.
 def init_db():
     print("Attempting to recreate database from schema in init.sql...")
     try:
