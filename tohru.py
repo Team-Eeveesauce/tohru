@@ -632,6 +632,76 @@ async def restart_bot(ctx):
     # Crash the bot so whatever's running it can restart it.
     exit(1)
 
+@maintenance.command(
+    name="reencode",
+    description="Will re-encode an MP3 that's been uploaded, provided the original file still exists.",
+    guild_ids=[GUILD_ID]
+)
+async def reencode(
+    ctx: discord.ApplicationContext,
+    upload_id: Option(int, "The archives_audio ID to be re-encoded.", required=True)
+):
+    print("Re-encoding an audio upload...")
+    await ctx.defer(ephemeral=True)
+
+    try:
+        # Connect to database
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Get upload details
+        sql = f"SELECT original_path FROM archives_audio WHERE id = %s"
+        val = (upload_id,)
+        cursor.execute(sql, val)
+
+        # Check if upload exists
+        result = cursor.fetchone()
+        if not result:
+            return await ctx.respond(f"Upload with ID {upload_id} not found!")
+
+        original_path = result[0]
+        print(f"Retrieved original path from DB: {original_path}")
+
+        if not os.path.isfile(original_path):
+            return await ctx.respond(f"The original file for upload ID {upload_id} could not be found at {original_path}.")
+
+        # Re-encode the audio
+        try:
+            audio = AudioSegment.from_file(original_path)
+
+            # Crunch the audio for maximum effect!
+            audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
+
+            out_path = f"{original_path}_R.mp3"
+            out_ = audio.export(out_path, format="mp3", bitrate="64k")
+            out_.close()
+
+            print("Audio re-encoded at 64kbps MP3!")
+        except Exception as e:
+            print(f"Audio NOT re-encoded! {e}")
+            return await ctx.respond(content="Something went wrong reprocessing the audio. This task has NOT been completed.")
+
+        # Update database with new path
+        sql = f"UPDATE archives_audio SET path = %s WHERE id = %s"
+        val = (out_path, upload_id)
+        cursor.execute(sql, val)
+        mydb.commit()
+        cursor.close()
+        mydb.close()
+
+        await ctx.respond(content=f"Upload ID {upload_id} has been successfully re-encoded!", file=discord.File(out_path))
+        print(f"Archives ID {upload_id} re-encoded successfully!")
+
+    except Exception as e:
+        print(f"Error during re-encode: {e}")
+
+
+# Print an index of database things for fun reasons.
+
 @bot.slash_command(
     name="index",
     description="Print a Table of Contents for items in the archives/stuffpile.",
