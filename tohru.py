@@ -812,7 +812,7 @@ async def submit_to_archives(file, caption, author_id):
                 comp_path = f"uploads/{filename}.mp3"
 
                 # WAIT! Is it a MIDI file?
-                if mime_type == "audio/midi" or "audio/x-midi":
+                if mime_type == "audio/midi" or mime_type == "audio/x-midi":
                     # Aw sweet let's go render us some midis
                     saved_path = await synthesize_midi(saved_path)
                     if not saved_path:
