@@ -830,7 +830,11 @@ async def submit_to_archives(file, caption, author_id):
 
                     # Crunch the audio for maximum effect!
                     audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
-                    audio = audio.low_pass_filter(7000).high_pass_filter(100)
+
+                    # There used to be a low-pass high-pass filter put in, but I've had a change of heart.
+                    # Music shouldn't be horrible to listen to, even if it is funny.
+                    # ... But I reserve the right to change my mind about that later. And we DO have a kbps limit anyway.
+                    # audio = audio.low_pass_filter(7000).high_pass_filter(100)
 
                     # Now export the audio!
                     out_ = audio.export(comp_path, format="mp3", bitrate="64k")
