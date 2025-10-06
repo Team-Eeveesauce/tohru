@@ -814,13 +814,19 @@ async def submit_to_archives(file, caption, author_id):
                 # WAIT! Is it a MIDI file?
                 if mime_type == "audio/midi" or mime_type == "audio/x-midi":
                     # Aw sweet let's go render us some midis
+                    midi = True
                     saved_path = await synthesize_midi(saved_path)
                     if not saved_path:
                         return False
+                else:
+                    midi = False
 
                 # Compress the audio
                 try:
-                    audio = AudioSegment.from_file(f"{saved_path}.wav")
+                    if midi:
+                        audio = AudioSegment.from_file(f"{saved_path}.wav")
+                    else:
+                        audio = AudioSegment.from_file(saved_path)
 
                     # Crunch the audio for maximum effect!
                     audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
