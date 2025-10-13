@@ -56,6 +56,10 @@ from pydub import AudioSegment # pip install pydub
 import pretty_midi
 import soundfile as sf
 
+# for crypto, the secret message tool. it should be in this folder, it's NOT a pip package.
+import crypto
+
+
 # Intents because we need them apparently
 intents = discord.Intents.default()
 intents.message_content = True
@@ -135,7 +139,6 @@ async def crypto_encode(
     content: Option(str, "Your message here!", required=True, max_length=333)
 ):
     print("Encoding to Crypto.")
-    import crypto
     message = crypto.encode_crypto(content)
     await ctx.respond(content=message, ephemeral=True)
 
@@ -149,7 +152,6 @@ async def crypto_decode(
     content: Option(str, "Crypto code here!", required=True)
 ):
     print("Decoding from Crypto.")
-    import crypto
     message = crypto.decode_crypto(content)
     await ctx.respond(content=message, ephemeral=True)
 
@@ -300,9 +302,8 @@ async def tips_submit(
         cursor.execute(sql, val)
         mydb.commit()
 
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM {db}"
-        cursor.execute(sql)
+        # Fetch ID of last upload.
+        cursor.execute("SELECT LAST_INSERT_ID()")
         id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
@@ -446,9 +447,8 @@ async def stuff_submit(
         cursor.execute(sql, val)
         mydb.commit()
 
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM stuff"
-        cursor.execute(sql)
+        # Fetch ID of last upload.
+        cursor.execute("SELECT LAST_INSERT_ID()")
         id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
@@ -755,7 +755,7 @@ async def index(
 
 # CONTEXT MENU: Decode from Crypto
 @bot.message_command(
-    name="Decode (Crypto)",
+    name="Crypto: Decode",
     integration_types=[discord.IntegrationType.user_install]
 )
 async def context_decode(
@@ -797,9 +797,8 @@ async def context_quote(
         cursor.execute(sql, val)
         mydb.commit()
 
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM quotes"
-        cursor.execute(sql)
+        # Fetch ID of last upload.
+        cursor.execute("SELECT LAST_INSERT_ID()")
         id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
@@ -935,9 +934,8 @@ async def submit_to_archives(file, caption, author_id):
         cursor.execute(sql, val)
         mydb.commit()
 
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM {db}"
-        cursor.execute(sql)
+        # Fetch ID of last upload.
+        cursor.execute("SELECT LAST_INSERT_ID()")
         upload_id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
