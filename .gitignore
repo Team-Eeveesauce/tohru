@@ -156,3 +156,4 @@ ignore/
 uploads/
 backups/
 .env
+*.sf2

@@ -76,7 +76,7 @@ TIMEOUT = 5
 )
 async def echo(
     ctx: discord.ApplicationContext,
-    content: Option(str, "Your message here!", required=True)
+    content: Option(str, "Your message here!", required=True)  # type: ignore
 ):
     print("Executing ping command.")
     await ctx.respond(content=content)
@@ -128,7 +128,7 @@ crypto = bot.create_group(
 )
 async def crypto_encode(
     ctx: discord.ApplicationContext,
-    content: Option(str, "Your message here!", required=True, max_length=333)
+    content: Option(str, "Your message here!", required=True, max_length=333)  # type: ignore
 ):
     print("Encoding to Crypto.")
     import crypto
@@ -142,7 +142,7 @@ async def crypto_encode(
 )
 async def crypto_decode(
     ctx: discord.ApplicationContext,
-    content: Option(str, "Crypto code here!", required=True)
+    content: Option(str, "Crypto code here!", required=True)  # type: ignore
 ):
     print("Decoding from Crypto.")
     import crypto
@@ -164,8 +164,8 @@ archives = bot.create_group(
 )
 async def archives_upload(
     ctx: discord.ApplicationContext, 
-    file: Option(discord.Attachment, "Choose a file to upload", required=True),
-    caption: Option(str, "Add a caption/title to help identify the upload!", required=False) = ""
+    file: Option(discord.Attachment, "Choose a file to upload", required=True),  # type: ignore
+    caption: Option(str, "Add a caption/title to help identify the upload!", required=False) = ""  # type: ignore
 ):
     print("Upload command called!")
     await ctx.defer(ephemeral=True)
@@ -191,9 +191,9 @@ async def archives_upload(
 )
 async def archives_fetch(
     ctx: discord.ApplicationContext,
-    type: Option(str, "The type of upload to be fetched.", choices=['Image', 'Audio'], required=True),
-    upload_id: Option(int, "Specific upload ID", required=False, default=0),
-    uncompressed: Option(bool, "Send the uncompressed version of the upload?", default=False)
+    type: Option(str, "The type of upload to be fetched.", choices=['Image', 'Audio'], required=True),  # type: ignore
+    upload_id: Option(int, "Specific upload ID", required=False, default=0),  # type: ignore
+    uncompressed: Option(bool, "Send the uncompressed version of the upload?", default=False)  # type: ignore
 ):
     # Let 'em know we're comin'.
     await ctx.defer()
@@ -269,9 +269,9 @@ tips = bot.create_group(
 )
 async def tips_submit(
     ctx: discord.ApplicationContext,
-    type: Option(str, "Whether you are submitting a tip or a quote.", choices=['Tip', 'Quote'], required=True),
-    content: Option(str, "Type your submission here.", required=True, max_length=4096),
-    author: Option(str, "The person that the tip/quote originated from.", required=False, default="Anonymous", max_length=256)
+    type: Option(str, "Whether you are submitting a tip or a quote.", choices=['Tip', 'Quote'], required=True),  # type: ignore
+    content: Option(str, "Type your submission here.", required=True, max_length=4096),  # type: ignore
+    author: Option(str, "The person that the tip/quote originated from.", required=False, default="Anonymous", max_length=256)  # type: ignore
 ):
     print("Tip submission command called!")
 
@@ -323,8 +323,8 @@ async def tips_submit(
 )
 async def tips_roll(
     ctx: discord.ApplicationContext,
-    type: Option(str, "What type of submission you're looking for.", choices=['Tip', 'Quote'], required=True),
-    id: Option(int, "Specific submission ID (leave blank for random)", required=False, default=0)
+    type: Option(str, "What type of submission you're looking for.", choices=['Tip', 'Quote'], required=True),  # type: ignore
+    id: Option(int, "Specific submission ID (leave blank for random)", required=False, default=0)  # type: ignore
 ):
     print("Tip retrieval command called!")
 
@@ -391,8 +391,8 @@ pool = bot.create_group(
 )
 async def pool_create(
     ctx: discord.ApplicationContext,
-    pool: Option(str, "Names must be uniques, we recommend adding your own prefix to avoid conflicts.", required=True, max_length=4),
-    visible: Option(bool, "Should this pool be visible to others? They will also be able to modify it.", default=True)
+    pool: Option(str, "Names must be uniques, we recommend adding your own prefix to avoid conflicts.", required=True, max_length=4),  # type: ignore
+    visible: Option(bool, "Should this pool be visible to others? They will also be able to modify it.", default=True)  # type: ignore
 ):
     print(f"User {ctx.author.id} is creating a new pool; {pool}!")
     await ctx.defer(ephemeral=True)
@@ -441,8 +441,8 @@ async def pool_create(
 )
 async def pool_submit(
     ctx: discord.ApplicationContext,
-    pool: Option(str, "Which of your pools would you like to use?", required=True, max_length=4),
-    content: Option(str, "Type your submission here.", required=True, max_length=4096)
+    pool: Option(str, "Which of your pools would you like to use?", required=True, max_length=4),  # type: ignore
+    content: Option(str, "Type your submission here.", required=True, max_length=4096)  # type: ignore
 ):
     print(f"User {ctx.author.id} is submitting into {pool}!")
     await ctx.defer(ephemeral=True)
@@ -519,11 +519,11 @@ stuff = bot.create_group(
 )
 async def stuff_submit(
     ctx: discord.ApplicationContext,
-    type: Option(str, "The type of submission you're making.", choices=['Person', 'Place', 'Thing'], required=True),
-    name: Option(str, "The name of your submission here.", required=True, max_length=256),
-    description: Option(str, "A detailed description of your submission.", required=True, max_length=4096),
-    image: Option(discord.Attachment, "An image of your submission.", required=True),
-    fact: Option(str, "A fun fact about your submission.", required=False, default="None provided.", max_length=1024)
+    type: Option(str, "The type of submission you're making.", choices=['Person', 'Place', 'Thing'], required=True),  # type: ignore
+    name: Option(str, "The name of your submission here.", required=True, max_length=256),  # type: ignore
+    description: Option(str, "A detailed description of your submission.", required=True, max_length=4096),  # type: ignore
+    image: Option(discord.Attachment, "An image of your submission.", required=True),  # type: ignore
+    fact: Option(str, "A fun fact about your submission.", required=False, default="None provided.", max_length=1024)  # type: ignore
 ):
     print("Stuff submission command called!")
     await ctx.defer(ephemeral=False)
@@ -595,8 +595,8 @@ async def stuff_submit(
 )
 async def stuff_find(
     ctx: discord.ApplicationContext,
-    type: Option(str, "The type of thing you're looking for.", choices=['Person', 'Place', 'Thing'], required=False, default="Any"),
-    id: Option(int, "Specific image ID (overrides other options)", required=False, default=0)
+    type: Option(str, "The type of thing you're looking for.", choices=['Person', 'Place', 'Thing'], required=False, default="Any"),  # type: ignore
+    id: Option(int, "Specific image ID (overrides other options)", required=False, default=0)  # type: ignore
 ):
     try:
         # Connect to database
@@ -648,9 +648,9 @@ async def stuff_find(
 )
 async def stuff_update(
     ctx: discord.ApplicationContext,
-    type: Option(str, "The type of edit you're making.", choices=['Image','Visibility'], required=True),
-    id: Option(int, "The ID of the submission to be updated.", required=True),
-    image: Option(discord.Attachment, "An updated image of your submission.", required=False)
+    type: Option(str, "The type of edit you're making.", choices=['Image','Visibility'], required=True),  # type: ignore
+    id: Option(int, "The ID of the submission to be updated.", required=True),  # type: ignore
+    image: Option(discord.Attachment, "An updated image of your submission.", required=False)  # type: ignore
 ):
     print("Stuff submission command called!")
     await ctx.defer(ephemeral=True)
@@ -762,8 +762,8 @@ async def restart_bot(ctx):
     integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install])
 async def index(
     ctx: discord.ApplicationContext,
-    db: Option(str, "The database to view.", choices={'archives_image', 'archives_audio', 'stuff'}, required=True),
-    user: Option(discord.User, "The user to view entries for.", required=False)
+    db: Option(str, "The database to view.", choices={'archives_image', 'archives_audio', 'stuff'}, required=True),  # type: ignore
+    user: Option(discord.User, "The user to view entries for.", required=False)  # type: ignore
     ):
     try:
         # It'll freak out if we don't do this.
