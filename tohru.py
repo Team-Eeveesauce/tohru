@@ -49,8 +49,16 @@ from datetime import datetime
 from colorthief import ColorThief
 from PIL import ImageColor
 from wand.image import Image as MagickImage
-import mimetypes
+import filetype # pip install filetype
+
+# for audio/midi conversion
 from pydub import AudioSegment # pip install pydub
+import pretty_midi
+import soundfile as sf
+
+# for crypto, the secret message tool. it should be in this folder, it's NOT a pip package.
+import crypto
+
 
 # Intents because we need them apparently
 intents = discord.Intents.default()
@@ -63,8 +71,8 @@ BOT_TOKEN = os.getenv('BOT_TOKEN')
 GUILD_ID = os.getenv('GUILD_ID')
 KANNA_IP = os.getenv('KANNA_IP')
 PORT = int(os.getenv('PORT'))
+SOUNDFONT = os.getenv('SOUNDFONT')
 TIMEOUT = 5
-
 
 # Define all the commands:
 
@@ -131,7 +139,6 @@ async def crypto_encode(
     content: Option(str, "Your message here!", required=True, max_length=333)  # type: ignore
 ):
     print("Encoding to Crypto.")
-    import crypto
     message = crypto.encode_crypto(content)
     await ctx.respond(content=message, ephemeral=True)
 
@@ -145,7 +152,6 @@ async def crypto_decode(
     content: Option(str, "Crypto code here!", required=True)  # type: ignore
 ):
     print("Decoding from Crypto.")
-    import crypto
     message = crypto.decode_crypto(content)
     await ctx.respond(content=message, ephemeral=True)
 
@@ -296,9 +302,8 @@ async def tips_submit(
         cursor.execute(sql, val)
         mydb.commit()
 
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM {db}"
-        cursor.execute(sql)
+        # Fetch ID of last upload.
+        cursor.execute("SELECT LAST_INSERT_ID()")
         id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
@@ -570,9 +575,8 @@ async def stuff_submit(
         cursor.execute(sql, val)
         mydb.commit()
 
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM stuff"
-        cursor.execute(sql)
+        # Fetch ID of last upload.
+        cursor.execute("SELECT LAST_INSERT_ID()")
         id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
@@ -756,6 +760,76 @@ async def restart_bot(ctx):
     # Crash the bot so whatever's running it can restart it.
     exit(1)
 
+@maintenance.command(
+    name="reencode",
+    description="Will re-encode an MP3 that's been uploaded, provided the original file still exists.",
+    guild_ids=[GUILD_ID]
+)
+async def reencode(
+    ctx: discord.ApplicationContext,
+    upload_id: Option(int, "The archives_audio ID to be re-encoded.", required=True)
+):
+    print("Re-encoding an audio upload...")
+    await ctx.defer(ephemeral=True)
+
+    try:
+        # Connect to database
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Get upload details
+        sql = f"SELECT original_path FROM archives_audio WHERE id = %s"
+        val = (upload_id,)
+        cursor.execute(sql, val)
+
+        # Check if upload exists
+        result = cursor.fetchone()
+        if not result:
+            return await ctx.respond(f"Upload with ID {upload_id} not found!")
+
+        original_path = result[0]
+        print(f"Retrieved original path from DB: {original_path}")
+
+        if not os.path.isfile(original_path):
+            return await ctx.respond(f"The original file for upload ID {upload_id} could not be found at {original_path}.")
+
+        # Re-encode the audio
+        try:
+            audio = AudioSegment.from_file(original_path)
+
+            # Crunch the audio for maximum effect!
+            audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
+
+            out_path = f"{original_path}_R.mp3"
+            out_ = audio.export(out_path, format="mp3", bitrate="64k")
+            out_.close()
+
+            print("Audio re-encoded at 64kbps MP3!")
+        except Exception as e:
+            print(f"Audio NOT re-encoded! {e}")
+            return await ctx.respond(content="Something went wrong reprocessing the audio. This task has NOT been completed.")
+
+        # Update database with new path
+        sql = f"UPDATE archives_audio SET path = %s WHERE id = %s"
+        val = (out_path, upload_id)
+        cursor.execute(sql, val)
+        mydb.commit()
+        cursor.close()
+        mydb.close()
+
+        await ctx.respond(content=f"Upload ID {upload_id} has been successfully re-encoded!", file=discord.File(out_path))
+        print(f"Archives ID {upload_id} re-encoded successfully!")
+
+    except Exception as e:
+        print(f"Error during re-encode: {e}")
+
+
+# Print an index of database things for fun reasons.
+
 @bot.slash_command(
     name="index",
     description="Print a Table of Contents for items in the archives/stuffpile.",
@@ -809,7 +883,7 @@ async def index(
 
 # CONTEXT MENU: Decode from Crypto
 @bot.message_command(
-    name="Decode (Crypto)",
+    name="Crypto: Decode",
     integration_types=[discord.IntegrationType.user_install]
 )
 async def context_decode(
@@ -851,9 +925,8 @@ async def context_quote(
         cursor.execute(sql, val)
         mydb.commit()
 
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM quotes"
-        cursor.execute(sql)
+        # Fetch ID of last upload.
+        cursor.execute("SELECT LAST_INSERT_ID()")
         id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
@@ -905,22 +978,15 @@ async def context_archive(
 # Submit to archives!
 async def submit_to_archives(file, caption, author_id):
     try:
-        # Get current timestamp
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-
-        # Generate 4 random characters
-        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
-
-        filename = f"{timestamp}_{random_suffix}_{file.filename}" 
-        saved_path = f"uploads/{filename}"
-        await file.save(saved_path)
-        print("File saved!")
+        saved_path, filename = await download_file(file)
 
         # Determine whether it's an image, audio, or neither.
-        mime_type, _ = mimetypes.guess_type(saved_path)
-        if mime_type:
+        kind = filetype.guess(saved_path)
+        if kind is not None:
+            mime_type = kind.mime
+            
             if mime_type.startswith("image/"): # INCOMING IMAGE!!
-                print(f"Incoming IMAGE... {saved_path}")
+                print(f"Incoming {mime_type}... {saved_path}")
                 db = "archives_image"
                 comp_path = f"uploads/{filename}.jpg"
 
@@ -937,18 +1003,35 @@ async def submit_to_archives(file, caption, author_id):
                     return "Something went wrong processing the image. Your submission has NOT been saved.", True, None, None, None
 
             elif mime_type.startswith("audio/"): # INCOMING AUDIO!!
-                print(f"Incoming AUDIO... {saved_path}")
+                print(f"Incoming {mime_type}... {saved_path}")
                 # Add audio processing logic here
                 db = "archives_audio"
                 comp_path = f"uploads/{filename}.mp3"
 
+                # WAIT! Is it a MIDI file?
+                if mime_type == "audio/midi" or mime_type == "audio/x-midi":
+                    # Aw sweet let's go render us some midis
+                    midi = True
+                    saved_path = await synthesize_midi(saved_path)
+                    if not saved_path:
+                        return False
+                else:
+                    midi = False
+
                 # Compress the audio
                 try:
-                    audio = AudioSegment.from_file(saved_path)
+                    if midi:
+                        audio = AudioSegment.from_file(f"{saved_path}.wav")
+                    else:
+                        audio = AudioSegment.from_file(saved_path)
 
                     # Crunch the audio for maximum effect!
                     audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
-                    audio = audio.low_pass_filter(7000).high_pass_filter(100)
+
+                    # There used to be a low-pass high-pass filter put in, but I've had a change of heart.
+                    # Music shouldn't be horrible to listen to, even if it is funny.
+                    # ... But I reserve the right to change my mind about that later. And we DO have a kbps limit anyway.
+                    # audio = audio.low_pass_filter(7000).high_pass_filter(100)
 
                     # Now export the audio!
                     out_ = audio.export(comp_path, format="mp3", bitrate="64k")
@@ -963,7 +1046,7 @@ async def submit_to_archives(file, caption, author_id):
                 return "Uh oh, something went wrong.\nMaybe the filetype is unsupported?", True, None, None, None
         else:
             print("Could not determine file type, aborting...")
-            return "Uh oh, something went wrong.\nAre you sure you're uploading an image or audio file?", True, None, None, None
+            return f"Sorry, we can't figure out what type of file you're uploading!", True, None, None, None
 
         # Connect to database.
         try:
@@ -979,9 +1062,8 @@ async def submit_to_archives(file, caption, author_id):
         cursor.execute(sql, val)
         mydb.commit()
 
-        # Fetch ID of last upload via the total count of entries in the archive (bad idea but it should work if nothing went wrong).
-        sql = f"SELECT COUNT(*) FROM {db}"
-        cursor.execute(sql)
+        # Fetch ID of last upload.
+        cursor.execute("SELECT LAST_INSERT_ID()")
         upload_id = cursor.fetchone()[0]
         cursor.close()
         mydb.close()
@@ -994,6 +1076,39 @@ async def submit_to_archives(file, caption, author_id):
         cursor.close()
         mydb.close()
         return "Uh oh, something went wrong: {e}. Please try again.", True, None, None, None
+
+# MIDI Synthesis
+async def synthesize_midi(input):
+    # Load the MIDI file
+    midi = pretty_midi.PrettyMIDI(input)
+
+    # Check for soundfont file
+    if not SOUNDFONT:
+        # Use default soundfont (boring)
+        audio = midi.fluidsynth(fs=44100)
+    else:
+        # Use custom soundfont (awesome)
+        audio = midi.fluidsynth(fs=44100, sf2_path=SOUNDFONT)
+
+    # Save as WAV
+    output = input + ".wav"
+    sf.write(output, audio, 44100)
+    return input # this is not a mistake; when requesting the original version of the file, it should return the midi, not the intermediate wav.
+
+# Download a file into the uploads directory.
+async def download_file(file):
+    # Get current timestamp
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+
+    # Generate 4 random characters
+    random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
+
+    filename = f"{timestamp}_{random_suffix}_{file.filename}" 
+    saved_path = f"uploads/{filename}"
+    await file.save(saved_path)
+    print("File saved!")
+
+    return saved_path, filename
 
 # Database Connection Setup
 def reconnect_to_db():
@@ -1026,6 +1141,7 @@ def reconnect_to_db():
             print(f"Error connecting to database: {err}")
             restart_bot()
 
+# Initialize the database from the schema in init.sql, in the case it doesn't exist.
 def init_db():
     print("Attempting to recreate database from schema in init.sql...")
     try:

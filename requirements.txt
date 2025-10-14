@@ -5,3 +5,8 @@ colorthief
 pillow
 wand
 pydub
+filetype
+pretty_midi
+soundfile
+setuptools
+pyfluidsynth
