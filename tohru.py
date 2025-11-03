@@ -86,7 +86,7 @@ async def echo(
     ctx: discord.ApplicationContext,
     content: Option(str, "Your message here!", required=True)  # type: ignore
 ):
-    print("Executing ping command.")
+    print(f"User {ctx.author.id} is saying something... {content}")
     await ctx.respond(content=content)
 
 
@@ -514,7 +514,7 @@ async def pool_submit(
 async def pool_index(
     ctx: discord.ApplicationContext,
     pool: Option(str, "The pool to view.", required=False),  # type: ignore
-    allPools: Option(bool, "View items from all users?", required=False, default=True)  # type: ignore
+    all_pools: Option(bool, "View items from all users?", required=False, default=True)  # type: ignore
     ):
     try:
         # It'll freak out if we don't do this.
@@ -522,7 +522,7 @@ async def pool_index(
         cursor = mydb.cursor()
         command = ""
 
-        print(f"Index command called for {db}...")
+        print(f"Index command called for pools...")
 
         # If no pool is specified, list all of them!
         if pool:
@@ -531,7 +531,7 @@ async def pool_index(
             command = f"SELECT id, name FROM pools"
 
         # And if we're only looking at this one guy's stuff...
-        if not allPools:
+        if not all_pools:
             command = command + f" WHERE user_id = {ctx.author.id}"
 
         # And thus, we search for entries! And knowledge!!
@@ -1018,7 +1018,141 @@ async def context_archive(
     else:
         await ctx.respond(content=f"File is now safe in the archives! ID: {upload_id}",file=discord.File(comp_path))
     print(f"(C) Archives ID {upload_id} saved successfully!")
+
+# CONTEXT MENU: Reaction
+@bot.message_command(
+    name="Reaction",
+    integration_types=[discord.IntegrationType.user_install]
+)
+async def context_archive(
+    ctx: discord.ApplicationContext,
+    message: discord.Message
+):
+    print(f"(C) {ctx.author.id} is reacting to a message...")
+    await ctx.defer()
+
+    # This pulls the user's set image, quote, and audio from the DB and returns it as a reply.
+    # Do note that users may have any combination of these set or unset.
     
+    try:
+        # Connect to database
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Check if user exists in the DB
+        sql = f"SELECT COUNT(*) FROM users WHERE id = %s"
+        val = (ctx.author.id,)
+        cursor.execute(sql, val)
+        user_exists = cursor.fetchone()
+        if not user_exists:
+            return await ctx.respond("We don't know anything about you!\nPlease use `/reaction` to get started!", ephemeral=True)
+
+        # Get user reaction details
+        sql = f"SELECT image, quote, audio FROM users WHERE id = %s"
+        val = (ctx.author.id,)
+        cursor.execute(sql, val)
+
+        # Check if reaction exists
+        result = cursor.fetchone()
+        if not result:
+            return await ctx.respond("You have not set up a reaction yet!\n Please use `/reaction` to set one!", ephemeral=True)
+
+        image, quote, audio = result
+
+        # Prepare the response
+        files = []
+
+        if quote:
+            embed = discord.Embed(title=quote)
+            print(f"(C) Using quote for reaction: {quote}")
+        else:
+            embed = discord.Embed(title=f"{ctx.author.name}'s honest reaction")
+
+        if image:
+            # Fetch image path from archives
+            cursor.execute(f"SELECT path FROM archives_image WHERE id = {image}")
+            image_path, = cursor.fetchone()
+            files.append(discord.File(image_path))
+            filename = image_path.split("/")[-1]
+            embed.set_image(url=f"attachment://{filename}")
+            print(f"(C) Fetched image for reaction: {image_path}")
+
+        if audio:
+            # Fetch audio path from archives
+            cursor.execute(f"SELECT path FROM archives_audio WHERE id = {audio}")
+            audio_path, = cursor.fetchone()
+            files.append(discord.File(str(audio_path)))
+            print(f"(C) Fetched audio for reaction: {audio_path}")
+
+        await ctx.respond(embed=embed, files=files)
+        print(f"(C) Reaction from {ctx.author.id} sent successfully!")
+        cursor.close()
+        mydb.close()
+
+    except Exception as e:
+        print(f"Error retrieving reaction: {e}")
+        await ctx.respond(f"Uh oh, something went wrong: {e}", ephemeral=True)
+        cursor.close()
+        mydb.close()
+
+
+# Accompanying SET REACTION command
+@bot.slash_command(
+    name="set_reaction",
+    description="Set any combination of quote.",
+    integration_types=[discord.IntegrationType.user_install]
+)
+async def set_reaction(
+    ctx: discord.ApplicationContext,
+    quote: Option(str, "The full text of your favourite quote. This is NOT an ID.", required=False, default=0),  # type: ignore
+    image_id: Option(int, "The archives image ID to use with your reaction.", required=False, default=0),  # type: ignore
+    audio_id: Option(int, "The archives audio ID to use with your reaction.", required=False, default=0)  # type: ignore
+):
+    print(f"(C) {ctx.author.id} is setting their reaction...")
+    await ctx.defer(ephemeral=True)
+
+    try:
+        # Connect to database
+        try:
+            cursor = mydb.cursor()
+        except mysql.connector.Error as err:
+            print(f"Error connecting to DB: {err}")
+            reconnect_to_db()
+            cursor = mydb.cursor()
+
+        # Check if user exists in the DB
+        sql = f"SELECT COUNT(*) FROM users WHERE id = %s"
+        val = (ctx.author.id,)
+        cursor.execute(sql, val)
+        user_exists = cursor.fetchone()[0] > 0
+
+        if user_exists:
+            # Update existing user
+            sql = f"UPDATE users SET image = %s, quote = %s, audio = %s WHERE id = %s"
+        else:
+            # Create new user entry
+            sql = f"INSERT INTO users (image, quote, audio, id) VALUES (%s, %s, %s, %s)"
+
+        val = (image_id or None, quote or None, audio_id or None, ctx.author.id)
+        cursor.execute(sql, val)
+        mydb.commit()
+        cursor.close()
+        mydb.close()
+
+        await ctx.respond(content="Your reaction has been set successfully!", ephemeral=True)
+        print(f"(C) Reaction for {ctx.author.id} set successfully!")
+
+    except Exception as e:
+        print(f"Error setting reaction: {e}")
+        await ctx.respond(f"Uh oh, something went wrong: {e}", ephemeral=True)
+        cursor.close()
+        mydb.close()
+
+
 
 # Define special commands
 
