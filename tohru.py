@@ -396,10 +396,10 @@ pool = bot.create_group(
 )
 async def pool_create(
     ctx: discord.ApplicationContext,
-    pool: Option(str, "Names must be uniques, we recommend adding your own prefix to avoid conflicts.", required=True, max_length=4),  # type: ignore
+    pool: Option(str, "Names must be uniques, we recommend adding your own prefix to avoid conflicts.", required=True, max_length=16),  # type: ignore
     visible: Option(bool, "Should this pool be visible to others? They will also be able to modify it.", default=True)  # type: ignore
 ):
-    print(f"User {ctx.author.id} is creating a new pool; {pool}!")
+    print(f"User {ctx.author.id} is creating a new pool: {pool}")
     await ctx.defer(ephemeral=True)
 
     try:
@@ -412,7 +412,7 @@ async def pool_create(
             cursor = mydb.cursor()
 
         # Check if the pool already exists
-        sql = "SELECT COUNT(*) FROM pools WHERE pool = %s"
+        sql = "SELECT COUNT(*) FROM pools WHERE name = %s"
         val = (pool,)
         cursor.execute(sql, val)
         pool_exists = cursor.fetchone()[0] > 0
@@ -446,7 +446,7 @@ async def pool_create(
 )
 async def pool_submit(
     ctx: discord.ApplicationContext,
-    pool: Option(str, "Which of your pools would you like to use?", required=True, max_length=4),  # type: ignore
+    pool: Option(str, "Which of your pools would you like to use?", required=True, max_length=16),  # type: ignore
     content: Option(str, "Type your submission here.", required=True, max_length=4096)  # type: ignore
 ):
     print(f"User {ctx.author.id} is submitting into {pool}!")
@@ -462,7 +462,7 @@ async def pool_submit(
             cursor = mydb.cursor()
 
         # Check if the pool exists
-        sql = "SELECT COUNT(*) FROM pools WHERE pool = %s"
+        sql = "SELECT COUNT(*) FROM pools WHERE name = %s"
         val = (pool,)
         cursor.execute(sql, val)
         pool_exists = cursor.fetchone()[0] > 0
@@ -474,14 +474,12 @@ async def pool_submit(
             return
         
         # Check if the user is permitted to submit to this pool, or if it is public.
-        sql = "SELECT visible FROM pools WHERE pool = %s"
-        val = (pool,)
-        cursor.execute(sql, val)
+        cursor.execute(f"SELECT visible FROM pools WHERE name = {pool}")
         visible = cursor.fetchone()[0]
 
         if not visible:
             # Check if the user is the owner of this pool.
-            sql = "SELECT owner_id FROM pools WHERE pool = %s"
+            sql = "SELECT owner_id FROM pools WHERE name = %s"
             cursor.execute(sql, val)
             owner_id = cursor.fetchone()[0]
             if owner_id != ctx.author.id:
@@ -505,6 +503,55 @@ async def pool_submit(
     except Exception as e:
         print(f"Oh, fiddlesticks! What now... {e}?!")
         await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
+        cursor.close()
+        mydb.close()
+
+# Print an index of pool things.
+@pool.command(
+    name="index",
+    description="Print a Table of Contents for pools and their items.",
+    integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install])
+async def pool_index(
+    ctx: discord.ApplicationContext,
+    pool: Option(str, "The pool to view.", required=False),  # type: ignore
+    allPools: Option(bool, "View items from all users?", required=False, default=True)  # type: ignore
+    ):
+    try:
+        # It'll freak out if we don't do this.
+        reconnect_to_db()
+        cursor = mydb.cursor()
+        command = ""
+
+        print(f"Index command called for {db}...")
+
+        # If no pool is specified, list all of them!
+        if pool:
+            command = "SELECT id, content FROM pools_content WHERE pool_id = '{pool}'"
+        else:
+            command = f"SELECT id, name FROM pools"
+
+        # And if we're only looking at this one guy's stuff...
+        if not allPools:
+            command = command + f" WHERE user_id = {ctx.author.id}"
+
+        # And thus, we search for entries! And knowledge!!
+        cursor.execute(command)
+        entries = [(row[0], row[1]) for row in cursor.fetchall()]
+        cursor.close()
+        mydb.close()
+
+        # Didn't find anything? That's too bad.
+        if not entries:
+            return await ctx.respond("No entries found in the pools database.")
+
+        # Display that stuff!
+        paginator = Paginator(entries)
+        paginator.ctx = ctx
+        paginator.message = await ctx.respond(embed=paginator.create_embed(), view=paginator)
+
+    except Exception as e:
+        print(f"Error retrieving entries: {e}")
+        await ctx.respond(f"Uh oh, something went wrong: {e}")
         cursor.close()
         mydb.close()
 
