@@ -174,7 +174,7 @@ async def archives_upload(
     caption: Option(str, "Add a caption/title to help identify the upload!", required=False) = ""  # type: ignore
 ):
     print("Upload command called!")
-    await ctx.defer(ephemeral=True)
+    await ctx.defer(ephemeral=False)
 
     response, error, comp_path, caption, upload_id = await submit_to_archives(file, caption, ctx.author.id)
     
@@ -309,9 +309,9 @@ async def tips_submit(
         mydb.close()
 
         if type == "Tip":
-            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> {content}", ephemeral=True)
+            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> {content}", ephemeral=False)
         else:
-            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{content}\" - {author}*", ephemeral=True)
+            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{content}\" - {author}*", ephemeral=False)
 
         print(f"Tip {id} submitted successfully!")
 
@@ -657,7 +657,7 @@ async def stuff_update(
     image: Option(discord.Attachment, "An updated image of your submission.", required=False)  # type: ignore
 ):
     print("Stuff submission command called!")
-    await ctx.defer(ephemeral=True)
+    await ctx.defer(ephemeral=False)
 
     try:
         # Connect to database.
@@ -761,8 +761,8 @@ async def restart_bot(ctx):
     exit(1)
 
 @maintenance.command(
-    name="reencode",
-    description="Will re-encode an MP3 that's been uploaded, provided the original file still exists.",
+    name="reprocess",
+    description="Will reprocess an MP3 that's been uploaded, provided the original file still exists.",
     guild_ids=[GUILD_ID]
 )
 async def reencode(
