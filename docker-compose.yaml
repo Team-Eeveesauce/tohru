@@ -11,6 +11,8 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
     volumes:
       - db_data:/var/lib/mysql
+    restart:
+      unless-stopped
     networks:
       - tohru
 
@@ -25,7 +27,22 @@ services:
     depends_on:
       - db
     restart:
-      on-failure
+      unless-stopped
+    networks:
+      - tohru
+
+  phpmyadmin:
+    image: arm64v8/phpmyadmin
+    container_name: phpmyadmin
+    ports:
+      - "8080:80"
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+    depends_on:
+      - db
+    restart:
+      unless-stopped
     networks:
       - tohru
 
