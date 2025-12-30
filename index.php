@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="pages/style.css">
+    <link rel="icon" type="image/png" href="tohru.png">
 <?php
 // index.php - Main landing page
 require_once 'pages/config.php';
