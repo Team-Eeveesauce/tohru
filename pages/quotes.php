@@ -1,7 +1,4 @@
 <?php
-// quotes.php - Browse quotes
-require_once 'config.php';
-
 $pdo = getDB();
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -41,15 +38,16 @@ $quotes = $stmt->fetchAll();
     <div class="container">
         <header>
             <h1>💬 Quotes</h1>
-            <a href="index.php" class="back-link">← Back to Home</a>
+            <a href="." class="back-link">← Back to Home</a>
         </header>
 
         <div class="search-bar">
             <form method="GET" action="">
+                <input type="hidden" name="i" value="quotes">
                 <input type="text" name="search" placeholder="Search quotes or authors..." value="<?= e($search) ?>">
                 <button type="submit">Search</button>
                 <?php if ($search): ?>
-                    <a href="quotes.php" class="clear-search">Clear</a>
+                    <a href="?i=quotes" class="clear-search">Clear</a>
                 <?php endif; ?>
             </form>
         </div>
@@ -85,15 +83,15 @@ $quotes = $stmt->fetchAll();
         <?php if ($pagination['totalPages'] > 1): ?>
             <div class="pagination">
                 <?php if ($page > 1): ?>
-                    <a href="?page=1<?= $search ? '&search=' . urlencode($search) : '' ?>">&laquo; First</a>
-                    <a href="?page=<?= $page - 1 ?><?= $search ? '&search=' . urlencode($search) : '' ?>">Previous</a>
+                    <a href="?i=quotes&page=1<?= $search ? '&search=' . urlencode($search) : '' ?>">&laquo; First</a>
+                    <a href="?i=quotes&page=<?= $page - 1 ?><?= $search ? '&search=' . urlencode($search) : '' ?>">Previous</a>
                 <?php endif; ?>
 
                 <span class="page-info">Page <?= $page ?> of <?= $pagination['totalPages'] ?></span>
 
                 <?php if ($page < $pagination['totalPages']): ?>
-                    <a href="?page=<?= $page + 1 ?><?= $search ? '&search=' . urlencode($search) : '' ?>">Next</a>
-                    <a href="?page=<?= $pagination['totalPages'] ?><?= $search ? '&search=' . urlencode($search) : '' ?>">Last &raquo;</a>
+                    <a href="?i=quotes&page=<?= $page + 1 ?><?= $search ? '&search=' . urlencode($search) : '' ?>">Next</a>
+                    <a href="?i=quotes&page=<?= $pagination['totalPages'] ?><?= $search ? '&search=' . urlencode($search) : '' ?>">Last &raquo;</a>
                 <?php endif; ?>
             </div>
         <?php endif; ?>

@@ -1,7 +1,4 @@
 <?php
-// stuff.php - Browse stuff
-require_once 'config.php';
-
 $pdo = getDB();
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $search = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -48,11 +45,12 @@ $items = $stmt->fetchAll();
     <div class="container">
         <header>
             <h1>📦 Stuff</h1>
-            <a href="index.php" class="back-link">← Back to Home</a>
+            <a href="." class="back-link">← Back to Home</a>
         </header>
 
         <div class="search-bar">
             <form method="GET" action="">
+                <input type="hidden" name="i" value="stuff">
                 <input type="text" name="search" placeholder="Search stuff..." value="<?= e($search) ?>">
                 <select name="type">
                     <option value="">All Types</option>
@@ -62,7 +60,7 @@ $items = $stmt->fetchAll();
                 </select>
                 <button type="submit">Search</button>
                 <?php if ($search || $type): ?>
-                    <a href="stuff.php" class="clear-search">Clear</a>
+                    <a href="?i=stuff" class="clear-search">Clear</a>
                 <?php endif; ?>
             </form>
         </div>
@@ -114,15 +112,15 @@ $items = $stmt->fetchAll();
                 ?>
                 
                 <?php if ($page > 1): ?>
-                    <a href="?page=1<?= $queryString ?>">&laquo; First</a>
-                    <a href="?page=<?= $page - 1 ?><?= $queryString ?>">Previous</a>
+                    <a href="?i=stuff&page=1<?= $queryString ?>">&laquo; First</a>
+                    <a href="?i=stuff&page=<?= $page - 1 ?><?= $queryString ?>">Previous</a>
                 <?php endif; ?>
 
                 <span class="page-info">Page <?= $page ?> of <?= $pagination['totalPages'] ?></span>
 
                 <?php if ($page < $pagination['totalPages']): ?>
-                    <a href="?page=<?= $page + 1 ?><?= $queryString ?>">Next</a>
-                    <a href="?page=<?= $pagination['totalPages'] ?><?= $queryString ?>">Last &raquo;</a>
+                    <a href="?i=stuff&page=<?= $page + 1 ?><?= $queryString ?>">Next</a>
+                    <a href="?i=stuff&page=<?= $pagination['totalPages'] ?><?= $queryString ?>">Last &raquo;</a>
                 <?php endif; ?>
             </div>
         <?php endif; ?>

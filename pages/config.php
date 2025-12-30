@@ -1,5 +1,5 @@
 <?php
-// config.php - Database configuration
+// yknow, i thought these values wouldnt stick, but they seem to Just Work, so here they still are.
 define('DB_HOST', '127.0.0.1');
 define('DB_NAME', 'tohru');
 define('DB_USER', 'root');

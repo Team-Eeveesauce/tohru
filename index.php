@@ -9,7 +9,7 @@
 // index.php - Main landing page
 require_once 'pages/config.php';
 
-$page = $_GET['page'] ?? 'home';
+$page = $_GET['i'] ?? 'home';
 $allowed_pages = ['home', 'quotes', 'tips', 'stuff', 'images', 'audio', 'pools'];
 $page = in_array($page, $allowed_pages) ? $page : 'home';
 
@@ -18,44 +18,44 @@ if ($page !== 'home') {
     exit;
 }
 ?>
-    <title>Tohru Database Browser</title>
+    <title>TohruDB Web Browser Solution</title>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Tohru Database Browser</h1>
-            <p>Browse and search Discord bot data</p>
+            <h1>TohruDB Web Browser Solution</h1>
+            <p>I know this UI sucks ass but it's better than no UI. Thanks, Claude.</p>
         </header>
 
         <nav class="main-nav">
             <div class="nav-grid">
-                <a href="?page=quotes" class="nav-card">
+                <a href="?i=quotes" class="nav-card">
                     <h3>💬 Quotes</h3>
                     <p>Browse submitted quotes</p>
                 </a>
 
-                <a href="?page=tips" class="nav-card">
+                <a href="?i=tips" class="nav-card">
                     <h3>💡 Tips</h3>
                     <p>View helpful tips</p>
                 </a>
                 
-                <a href="?page=stuff" class="nav-card">
+                <a href="?i=stuff" class="nav-card">
                     <h3>📦 Stuff</h3>
                     <p>Explore categorized items</p>
                 </a>
-                
-                <a href="?page=images" class="nav-card">
+
+                <a href="?i=images" class="nav-card">
                     <h3>🖼️ Images</h3>
                     <p>Image archives</p>
                 </a>
                 
-                <a href="?page=audio" class="nav-card">
+                <a href="?i=audio" class="nav-card">
                     <h3>🔊 Audio</h3>
                     <p>Audio archives</p>
                 </a>
                 
-                <a href="?page=pools" class="nav-card">
-                    <h3>🗂️ Pools</h3>
+                <a href="?i=pools" class="nav-card">
+                    <h3>🗂️ Pools (Beta)</h3>
                     <p>Content collections</p>
                 </a>
             </div>
