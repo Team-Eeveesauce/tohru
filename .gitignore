@@ -153,6 +153,7 @@ cython_debug/
 
 # our stuff lol
 ignore/
+public/
 uploads/
 backups/
 .env

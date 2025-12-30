@@ -1,0 +1,15 @@
+<FilesMatch ".(ico|pdf|jpg|jpeg|png|gif|js|css)$">
+  Header set Cache-Control "max-age=10000, public"
+</FilesMatch>
+
+<FilesMatch ".(mp3|mp4|ogg|zip)$">
+  Header set Cache-Control "max-age=100000, public"
+</FilesMatch>
+
+<FilesMatch ".(bak)$">
+  Require all denied
+</FilesMatch>
+
+<FilesMatch "^\.dockerignore|.env|.gitattributes|.gitignore|docker-compose.yaml|Dockerfile|init.sql|tohru.py">
+  Require all denied
+</FilesMatch>

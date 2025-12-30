@@ -72,6 +72,7 @@ GUILD_ID = os.getenv('GUILD_ID')
 KANNA_IP = os.getenv('KANNA_IP')
 PORT = int(os.getenv('PORT'))
 SOUNDFONT = os.getenv('SOUNDFONT')
+UPLOADS_FOLDER = os.getenv('UPLOADS_FOLDER')
 TIMEOUT = 5
 
 # Define all the commands:
@@ -593,8 +594,8 @@ async def stuff_submit(
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
         filename = f"thing_{timestamp}_{random_suffix}_{image.filename}" 
-        saved_path = f"uploads/{filename}"
-        jpeg_path = f"uploads/{filename}.jpg"
+        saved_path = f"{UPLOADS_FOLDER}/{filename}"
+        jpeg_path = f"{UPLOADS_FOLDER}/{filename}.jpg"
         await image.save(saved_path)
         print("Image saved!")
 
@@ -612,7 +613,7 @@ async def stuff_submit(
             return  # End command execution if compression failed
 
         # Steal the dominant colour from the image.
-        color_thief = ColorThief(f"uploads/{filename}.jpg")
+        color_thief = ColorThief(f"{UPLOADS_FOLDER}/{filename}.jpg")
         dominant_color = color_thief.get_color(quality=5)
         hexcode = rgb2hex(*dominant_color)
 
@@ -676,7 +677,7 @@ async def stuff_find(
             return
 
         # Construct the image path.
-        image_path = f"uploads/{image}.jpg"
+        image_path = f"{UPLOADS_FOLDER}/{image}.jpg"
         print(f"Retrieved image path from DB: {image_path}")
 
         # Prepare it to send off to the user!
@@ -724,7 +725,7 @@ async def stuff_update(
             return await ctx.respond(f"Submission with ID {id} not found!")
 
         # Now, before we do anything else, fix some stuff so we can show the entries without anything weird happening.
-        jpeg_path = f"uploads/{filename}.jpg"
+        jpeg_path = f"{UPLOADS_FOLDER}/{filename}.jpg"
 
         match type:
             case "Image":
@@ -732,7 +733,7 @@ async def stuff_update(
                 timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
                 random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4))
                 filename = f"thing_{timestamp}_{random_suffix}_{image.filename}"
-                saved_path = f"uploads/{filename}"
+                saved_path = f"{UPLOADS_FOLDER}/{filename}"
                 await image.save(saved_path)
                 print("Image saved!")
 
@@ -752,7 +753,7 @@ async def stuff_update(
                     return  # End command execution if compression failed
 
                 # Steal the dominant colour from the new image.
-                color_thief = ColorThief(f"uploads/{filename}.jpg")
+                color_thief = ColorThief(f"{UPLOADS_FOLDER}/{filename}.jpg")
                 dominant_color = color_thief.get_color(quality=3)
                 hexcode = rgb2hex(*dominant_color)
 
@@ -1169,7 +1170,7 @@ async def submit_to_archives(file, caption, author_id):
             if mime_type.startswith("image/"): # INCOMING IMAGE!!
                 print(f"Incoming {mime_type}... {saved_path}")
                 db = "archives_image"
-                comp_path = f"uploads/{filename}.jpg"
+                comp_path = f"{UPLOADS_FOLDER}/{filename}.jpg"
 
                 # Compress the image
                 try:
@@ -1187,7 +1188,7 @@ async def submit_to_archives(file, caption, author_id):
                 print(f"Incoming {mime_type}... {saved_path}")
                 # Add audio processing logic here
                 db = "archives_audio"
-                comp_path = f"uploads/{filename}.mp3"
+                comp_path = f"{UPLOADS_FOLDER}/{filename}.mp3"
 
                 # WAIT! Is it a MIDI file?
                 if mime_type == "audio/midi" or mime_type == "audio/x-midi":
@@ -1285,7 +1286,7 @@ async def download_file(file):
     random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
 
     filename = f"{timestamp}_{random_suffix}_{file.filename}" 
-    saved_path = f"uploads/{filename}"
+    saved_path = f"{UPLOADS_FOLDER}/{filename}"
     await file.save(saved_path)
     print("File saved!")
 
