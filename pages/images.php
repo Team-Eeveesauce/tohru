@@ -33,7 +33,7 @@ $images = $stmt->fetchAll();
     <div class="container">
         <header>
             <h1>🖼️ Image Archives</h1>
-            <a href="." class="back-link">← Back to Home</a>
+            <a href="<?php echo $basePath; ?>" class="back-link">← Back to Home</a>
         </header>
 
         <div class="search-bar">
@@ -55,7 +55,7 @@ $images = $stmt->fetchAll();
             <?php foreach ($images as $img): ?>
                 <div class="gallery-item" style="border-color: <?= e($img['colour']) ?>">
                     <div class="gallery-image">
-                        <img src="<?= e($img['path']) ?>" alt="<?= e($img['caption']) ?>" loading="lazy">
+                        <img src="<?= e($basePath.$img['path']) ?>" alt="<?= e($img['caption']) ?>" loading="lazy">
                     </div>
                     <div class="gallery-caption">
                         <p><?= e($img['caption']) ?></p>

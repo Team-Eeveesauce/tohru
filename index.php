@@ -1,14 +1,5 @@
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="pages/style.css">
-    <link rel="icon" type="image/png" href="tohru.png">
 <?php
-// index.php - Main landing page
-
+# Load env stuff
 $env = file_get_contents(__DIR__."/.env");
 $lines = preg_split('/\r\n|\n|\r/', $env);
 
@@ -27,6 +18,17 @@ foreach ($lines as $line) {
     putenv("$key=$value");
 }
 
+$basePath = getenv('BASE_URL') ?: '/';
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="<?php echo $basePath; ?>/pages/style.css">
+    <link rel="icon" type="image/png" href="<?php echo $basePath; ?>/tohru.png">
+<?php
 require_once 'pages/config.php';
 
 $page = $_GET['i'] ?? 'home';

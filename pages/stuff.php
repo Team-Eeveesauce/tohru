@@ -74,7 +74,7 @@ $items = $stmt->fetchAll();
                 <div class="item-card stuff-card" style="border-left: 4px solid <?= e($item['colour']) ?>">
                     <?php if ($item['image']): ?>
                         <div class="stuff-image">
-                            <img src="uploads/<?= e($item['image']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
+                            <img src="<?= e($basePath.'uploads/'.$item['image']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
                         </div>
                     <?php endif; ?>
                     <div class="stuff-content">

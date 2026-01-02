@@ -32,13 +32,13 @@ services:
       - tohru
 
   web:
-    image: php:8.2-apache
+    build: ./web
     container_name: tohru_web
     ports:
-      - "80:80"
+      - "8081:80"
     volumes:
-      - ./pages:/var/www/html:ro
-      - ./uploads:/var/www/html/uploads
+      - ./:/var/www/html:ro
+      - uploads:/var/www/html/uploads:ro
     environment:
       - PHP_DISPLAY_ERRORS=1
     depends_on:

@@ -33,7 +33,7 @@ $audios = $stmt->fetchAll();
     <div class="container">
         <header>
             <h1>🔊 Audio Archives</h1>
-            <a href="." class="back-link">← Back to Home</a>
+            <a href="<?php echo $basePath; ?>" class="back-link">← Back to Home</a>
         </header>
 
         <div class="search-bar">
@@ -57,7 +57,7 @@ $audios = $stmt->fetchAll();
                     <div class="audio-content">
                         <h3><?= e($audio['caption']) ?></h3>
                         <audio controls preload="none">
-                            <source src="<?= e($audio['path']) ?>" type="audio/mpeg">
+                            <source src="<?= e($basePath.$audio['path']) ?>" type="audio/mpeg">
                             Your browser does not support the audio element.
                         </audio>
                         <div class="meta-info">
