@@ -75,7 +75,7 @@ if ($poolId) {
     <div class="container">
         <header>
             <h1>🗂️ <?= $poolId ? e($pool['name']) : 'Pools' ?></h1>
-            <a href="<?= $poolId ? '?i=pools' : '.' ?>" class="back-link">
+            <a href="<?= $poolId ? '?i=pools' : '<?php echo $basePath; ?>' ?>" class="back-link">
                 ← Back to <?= $poolId ? 'Pools' : 'Home' ?>
             </a>
         </header>

@@ -38,7 +38,7 @@ $quotes = $stmt->fetchAll();
     <div class="container">
         <header>
             <h1>💬 Quotes</h1>
-            <a href="." class="back-link">← Back to Home</a>
+            <a href="<?php echo $basePath; ?>" class="back-link">← Back to Home</a>
         </header>
 
         <div class="search-bar">
