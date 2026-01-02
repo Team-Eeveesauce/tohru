@@ -31,6 +31,22 @@ services:
     networks:
       - tohru
 
+  web:
+    image: php:8.2-apache
+    container_name: tohru_web
+    ports:
+      - "80:80"
+    volumes:
+      - ./pages:/var/www/html:ro
+      - ./uploads:/var/www/html/uploads
+    environment:
+      - PHP_DISPLAY_ERRORS=1
+    depends_on:
+      - db
+    restart: unless-stopped
+    networks:
+      - tohru
+  
   phpmyadmin:
     image: arm64v8/phpmyadmin
     container_name: phpmyadmin
