@@ -8,6 +8,25 @@
     <link rel="icon" type="image/png" href="tohru.png">
 <?php
 // index.php - Main landing page
+
+$env = file_get_contents(__DIR__."/.env");
+$lines = preg_split('/\r\n|\n|\r/', $env);
+
+foreach ($lines as $line) {
+    $line = trim($line);
+    if ($line === '' || strpos($line, '#') === 0) continue;
+    if (!preg_match('/^\s*([^=]+)\=(.*)$/', $line, $matches)) continue;
+
+    $key = trim($matches[1]);
+    $value = trim($matches[2]);
+
+    if ((strlen($value) >= 2) && (($value[0] === '"' && substr($value, -1) === '"') || ($value[0] === "'" && substr($value, -1) === "'"))) {
+        $value = substr($value, 1, -1);
+    }
+
+    putenv("$key=$value");
+}
+
 require_once 'pages/config.php';
 
 $page = $_GET['i'] ?? 'home';
