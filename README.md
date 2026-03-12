@@ -12,11 +12,13 @@ Mostly just designed to be used in the DTAG server, it can do certain things tha
   * CRYPTO integration (the [secret message tool](https://github.com/Team-Eeveesauce/crypto), not the currency.)
 
 ## Manual Installation
-You'll need to install Python 3 onto your machine to use either of these. The exact version probably doesn't matter, but I'm using 3.12.
+You'll need to install Python 3 onto your machine to use either of these. The exact version probably doesn't matter, but I'm using 3.14.
 
 Next, there's a few packages that you'll need to install from pip, which you can do by running this: `pip3 install -r requirements.txt`
 
-You'll also need a MariaDB or MySQL installation setup on one of your computers. It doesn't have to be on the same machine as Tohru, but it should be locally available.
+You may also need to install [ImageMagick](https://docs.wand-py.org/en/latest/guide/install.html) and [FluidSynth](https://github.com/FluidSynth/fluidsynth/wiki/Download) on your system.
+
+You'll also need a MariaDB or MySQL installation setup on one of your computers. It doesn't have to be on the same machine as Tohru, but it should be locally available. Make sure to create a bot user and give it permissions over the database of your choice!
 
 After those are installed, you just need to copy `.env.template` to `.env` and open it in your favourite text editor. You'll know what to do.
 
@@ -69,3 +71,6 @@ Alternatively, the Docker container can be configured to run whenever Docker is 
 
 **Q.** How do I moderate whatever enters the database?  
 **A.** There's an Update command for the Stuffpile, but everyone can access that. You'll just have to plunge into the database itself with HeidiSQL or phpMyAdmin, whatever suits you.
+
+**Q.** Uploading is broken.
+**A.** Try creating the upload folder and giving it permissions.
