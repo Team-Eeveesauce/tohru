@@ -648,19 +648,24 @@ async def main():
                 cursor = mydb.cursor()
 
             try:
-                if id == 0:
+                print("Stuff find command called!")
+                if not id:
                     if type == "Any":
                         # Grab a really random image.
+                        print("Finding something random...")
                         sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE visible = true ORDER BY RAND() LIMIT 1;"
                         cursor.execute(sql)
                     else:
                         # Grab a random image.
-                        sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE type = \"%s\" AND visible = true ORDER BY RAND() LIMIT 1;"
+                        print("Finding a random " + type + "...")
+                        sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE type = %s AND visible = true ORDER BY RAND() LIMIT 1;"
                         cursor.execute(sql, (type,))
                 else:
                     # Grab the specific image.
-                    sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE id = \"%s\" AND visible = true;"
+                    print("Finding submission no." + str(id) + "...")
+                    sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE id = %s AND visible = true;"
                     cursor.execute(sql, (id,))
+                
                 id, name, description, fact, image, hexcode = cursor.fetchone()
             except Exception as e:
                 await ctx.respond(f"Submission with ID {id} not found!")
@@ -707,7 +712,7 @@ async def main():
 
             # Verify that the submission exists, because it would be terrible if it didn't.
             try:
-                sql = "SELECT id, name, description, fact, image, colour, visible FROM stuff WHERE id = \"%s\" AND visible = true;"
+                sql = "SELECT id, name, description, fact, image, colour, visible FROM stuff WHERE id = %s AND visible = true;"
                 cursor.execute(sql, (id,))
                 id, name, description, fact, filename, hexcode, visible = cursor.fetchone()
             except Exception as e:
@@ -747,8 +752,8 @@ async def main():
                     hexcode = rgb2hex(*dominant_color)
 
                     # Update database
-                    sql = f"UPDATE stuff SET image = '{newfilename}', colour = '{hexcode}' WHERE id = {id};"
-                    cursor.execute(sql)
+                    sql = "UPDATE stuff SET image = %s, colour = %s WHERE id = %s;"
+                    cursor.execute(sql, (newfilename, hexcode, id))
                     mydb.commit()
                     cursor.close()
 
