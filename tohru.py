@@ -223,8 +223,8 @@ async def main():
 
             if upload_id == 0: # If they asked for a random upload.
                 # Count total images
-                sql = f"SELECT COUNT(*) FROM {db}"
-                cursor.execute(sql)
+                sql = "SELECT COUNT(*) FROM %s"
+                cursor.execute(sql, (db,))
                 total_images = cursor.fetchone()[0]
 
                 if not total_images:
@@ -235,11 +235,10 @@ async def main():
 
             # Get upload details
             if uncompressed:
-                sql = f"SELECT original_path, caption FROM {db} WHERE id = %s"
+                sql = "SELECT original_path, caption FROM %s WHERE id = %s"
             else:
-                sql = f"SELECT path, caption FROM {db} WHERE id = %s"
-            val = (upload_id,)
-            cursor.execute(sql, val)
+                sql = "SELECT path, caption FROM %s WHERE id = %s"
+            cursor.execute(sql, (db, upload_id,))
 
             # Check if upload exists
             result = cursor.fetchone()
@@ -256,13 +255,12 @@ async def main():
                 await ctx.respond(content=f"Here you go, boss! (ID: {upload_id})",file=discord.File(path))
             print(f"Archives ID {upload_id} sent successfully!")
             cursor.close()
-            mydb.close()
 
         except Exception as e:
             print(f"Error retrieving upload: {e}")
             await ctx.respond(f"Uh oh, something went wrong: {e}")
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
 
     # Commands involving the tips system.
@@ -310,7 +308,6 @@ async def main():
             cursor.execute("SELECT LAST_INSERT_ID()")
             id = cursor.fetchone()[0]
             cursor.close()
-            mydb.close()
 
             if type == "Tip":
                 await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> {content}", ephemeral=False)
@@ -322,8 +319,8 @@ async def main():
         except Exception as e:
             print(f"Oh, fiddlesticks! What now... {e}?!")
             await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
     # Tip retrieval fun
     @tips.command(
@@ -354,16 +351,16 @@ async def main():
 
             if id == 0: # If they asked for a random tip.
                 # Count total submissions
-                sql = f"SELECT COUNT(*) FROM {db}"
-                cursor.execute(sql)
+                sql = "SELECT COUNT(*) FROM %s"
+                cursor.execute(sql, (db))
                 total_submissions = cursor.fetchone()[0]
 
                 # Generate random number within submission count
                 id = random.randint(1, total_submissions)
 
             # Get submission
-            sql = f"SELECT content, author FROM {db} WHERE id = {id}"
-            cursor.execute(sql)
+            sql = "SELECT content, author FROM %s WHERE id = %s"
+            cursor.execute(sql, (db, id))
 
             # Check if submission exists
             content, author = cursor.fetchone()
@@ -371,19 +368,18 @@ async def main():
                 return await ctx.respond(f"Submission with ID {id} not found!")
 
             # Send image
-            if db == tips:
+            if db == "tips":
                 await ctx.respond(content=f"> {content}")
             else:
                 await ctx.respond(content=f"> *\"{content}\" - {author}*")
             print(f"Submission ID {id} sent successfully!")
             cursor.close()
-            mydb.close()
 
         except Exception as e:
             print(f"Error retrieving submission: {e}")
             await ctx.respond(f"Uh oh, something went wrong: {e}")
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
 
     # Commands involving the pool system.
@@ -417,31 +413,27 @@ async def main():
 
             # Check if the pool already exists
             sql = "SELECT COUNT(*) FROM pools WHERE name = %s"
-            val = (pool,)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (pool,))
             pool_exists = cursor.fetchone()[0] > 0
             if pool_exists:
                 await ctx.respond(content=f"Pool '{pool}' already exists! Please choose a different name.", ephemeral=True)
                 cursor.close()
-                mydb.close()
                 print(f"Nevermind! {pool} already exists!")
                 return  
 
             # Create the pool in the database
             sql = "INSERT INTO pools (name, owner_id, visible) VALUES (%s, %s, %s)"
-            val = (pool, ctx.author.id, visible)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (pool, ctx.author.id, visible))
             mydb.commit()
 
             print(f"User {ctx.author.id} created pool {pool} successfully!")
             await ctx.respond(content=f"Your pool '{pool}' has been created!", ephemeral=True)
             cursor.close()
-            mydb.close()
         except Exception as e:
             print(f"Oh, fiddlesticks! What now... {e}?!")
             await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
     # Pool submission fun
     @pool.command(
@@ -467,13 +459,11 @@ async def main():
 
             # Check if the pool exists
             sql = "SELECT COUNT(*) FROM pools WHERE name = %s"
-            val = (pool,)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (pool,))
             pool_exists = cursor.fetchone()[0] > 0
             if not pool_exists:
                 await ctx.respond(content=f"Pool '{pool}' does not exist! Please create it first.", ephemeral=True)
                 cursor.close()
-                mydb.close()
                 print(f"Nevermind! {pool} does not exist!")
                 return
             
@@ -489,7 +479,6 @@ async def main():
                 if owner_id != ctx.author.id:
                     await ctx.respond(content=f"You do not have permission to submit to pool '{pool}'.", ephemeral=True)
                     cursor.close()
-                    mydb.close()
                     print(f"Blocked! User {ctx.author.id} lacks permission to modify {pool}!")
                     return
 
@@ -502,13 +491,12 @@ async def main():
             print(f"User {ctx.author.id} submitted to pool {pool} successfully!")
             await ctx.respond(content=f"Your submission has been saved to pool '{pool}'!", ephemeral=True)
             cursor.close()
-            mydb.close()
 
         except Exception as e:
             print(f"Oh, fiddlesticks! What now... {e}?!")
             await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
     # Print an index of pool things.
     @pool.command(
@@ -542,7 +530,6 @@ async def main():
             cursor.execute(command)
             entries = [(row[0], row[1]) for row in cursor.fetchall()]
             cursor.close()
-            mydb.close()
 
             # Didn't find anything? That's too bad.
             if not entries:
@@ -556,8 +543,8 @@ async def main():
         except Exception as e:
             print(f"Error retrieving entries: {e}")
             await ctx.respond(f"Uh oh, something went wrong: {e}")
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
 
     # Commands involving the Stuffpile (TM).
@@ -629,7 +616,6 @@ async def main():
             cursor.execute("SELECT LAST_INSERT_ID()")
             id = cursor.fetchone()[0]
             cursor.close()
-            mydb.close()
 
             # Prepare it to send off to the user!
             embed = prepare_embed(name, description, hexcode, fact, id, filename)
@@ -639,8 +625,8 @@ async def main():
         except Exception as e:
             print(f"Oh, fiddlesticks! What now... {e}?!")
             await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
     # Stuff retrieval fun
     @stuff.command(
@@ -665,14 +651,16 @@ async def main():
                 if id == 0:
                     if type == "Any":
                         # Grab a really random image.
-                        sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE visible = true ORDER BY RAND() LIMIT 1;"
+                        sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE visible = true ORDER BY RAND() LIMIT 1;"
+                        cursor.execute(sql)
                     else:
                         # Grab a random image.
-                        sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE type = \"{type}\" AND visible = true ORDER BY RAND() LIMIT 1;"
+                        sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE type = \"%s\" AND visible = true ORDER BY RAND() LIMIT 1;"
+                        cursor.execute(sql, (type,))
                 else:
                     # Grab the specific image.
-                    sql = f"SELECT id, name, description, fact, image, colour FROM stuff WHERE id = \"{id}\" AND visible = true;"
-                cursor.execute(sql)
+                    sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE id = \"%s\" AND visible = true;"
+                    cursor.execute(sql, (id,))
                 id, name, description, fact, image, hexcode = cursor.fetchone()
             except Exception as e:
                 await ctx.respond(f"Submission with ID {id} not found!")
@@ -687,13 +675,12 @@ async def main():
             await ctx.respond(content=f"Here's what I found!",embed=embed,file=discord.File(image_path))
             print(f"Thing {id} sent successfully!")
             cursor.close()
-            mydb.close()
 
         except Exception as e:
             print(f"Error retrieving image: {e}")
             await ctx.respond(f"Uh oh, something went wrong: {e}")
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
     # Stuff updating fun
     @stuff.command(
@@ -720,8 +707,8 @@ async def main():
 
             # Verify that the submission exists, because it would be terrible if it didn't.
             try:
-                sql = f"SELECT id, name, description, fact, image, colour, visible FROM stuff WHERE id = \"{id}\" AND visible = true;"
-                cursor.execute(sql)
+                sql = "SELECT id, name, description, fact, image, colour, visible FROM stuff WHERE id = \"%s\" AND visible = true;"
+                cursor.execute(sql, (id,))
                 id, name, description, fact, filename, hexcode, visible = cursor.fetchone()
             except Exception as e:
                 return await ctx.respond(f"Submission with ID {id} not found!")
@@ -734,8 +721,8 @@ async def main():
                     # Save the new image.
                     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
                     random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4))
-                    filename = f"thing_{timestamp}_{random_suffix}_{image.filename}"
-                    saved_path = f"{UPLOADS_FOLDER}/{filename}"
+                    newfilename = f"thing_{timestamp}_{random_suffix}_{image.filename}"
+                    saved_path = f"{UPLOADS_FOLDER}/{newfilename}"
                     await image.save(saved_path)
                     print("Image saved!")
 
@@ -746,7 +733,7 @@ async def main():
                             # Convert to JPEG
                             magick_img.format = 'jpeg'
                             magick_img.compression_quality = 80  # Adjust quality as needed
-                            magick_img.save(filename=jpeg_path)
+                            magick_img.save(filename=saved_path + ".jpg")
                         print("Image compressed using PyMagick!")
                     except Exception as e:
                         # USE THIS WHEN DEBUGGING await ctx.respond(content=f"Something went wrong processing the image: {e}")
@@ -759,22 +746,24 @@ async def main():
                     dominant_color = color_thief.get_color(quality=3)
                     hexcode = rgb2hex(*dominant_color)
 
-                case "Visibility":
-                    visible = not visible
                     # Update database
-                    sql = f"UPDATE stuff SET visible = {visible} WHERE id = {id}"
+                    sql = f"UPDATE stuff SET image = '{newfilename}', colour = '{hexcode}' WHERE id = {id};"
                     cursor.execute(sql)
                     mydb.commit()
                     cursor.close()
-                    mydb.close()
-                    return await ctx.respond(content=f"Submission {id} has successfully been hidden!")
 
-            # Update database
-            sql = f"UPDATE stuff SET image = '{filename}', colour = '{hexcode}', visible = {visible} WHERE id = {id};"
-            cursor.execute(sql)
-            mydb.commit()
-            cursor.close()
-            mydb.close()
+                    # For embed purposes
+                    filename = newfilename
+                    jpeg_path = saved_path + ".jpg"
+
+                case "Visibility":
+                    visible = not visible
+                    # Update database
+                    sql = "UPDATE stuff SET visible = %s WHERE id = %s"
+                    cursor.execute(sql, (visible, id))
+                    mydb.commit()
+                    cursor.close()
+                    return await ctx.respond(content=f"Submission {id} has successfully been hidden!")
 
             # Prepare it to send off to the user!
             embed = prepare_embed(name, description, hexcode, fact, id, filename)
@@ -784,8 +773,8 @@ async def main():
         except Exception as e:
             print(f"Oh, fiddlesticks! What now... {e}?!")
             await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.")
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
 
     # Maintenance commands for admins.
@@ -804,7 +793,7 @@ async def main():
     async def restart_bot(ctx):
         print("Restarting bot...")
         await ctx.respond("Restarting...", ephemeral=True)
-        time.sleep(1)
+        await asyncio.sleep(1)
         mydb.disconnect()
 
         # Crash the bot so whatever's running it can restart it.
@@ -833,8 +822,7 @@ async def main():
 
             # Get upload details
             sql = f"SELECT original_path FROM archives_audio WHERE id = %s"
-            val = (upload_id,)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (upload_id,))
 
             # Check if upload exists
             result = cursor.fetchone()
@@ -865,17 +853,17 @@ async def main():
 
             # Update database with new path
             sql = f"UPDATE archives_audio SET path = %s WHERE id = %s"
-            val = (out_path, upload_id)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (out_path, upload_id))
             mydb.commit()
             cursor.close()
-            mydb.close()
 
             await ctx.respond(content=f"Upload ID {upload_id} has been successfully re-encoded!", file=discord.File(out_path))
             print(f"Archives ID {upload_id} re-encoded successfully!")
 
         except Exception as e:
             print(f"Error during re-encode: {e}")
+            if cursor:
+                cursor.close()
 
 
     # Print an index of database things for fun reasons.
@@ -910,7 +898,6 @@ async def main():
             cursor.execute(command)
             entries = [(row[0], row[1]) for row in cursor.fetchall()]
             cursor.close()
-            mydb.close()
 
             # Didn't find anything? That's too bad.
             if not entries:
@@ -924,8 +911,8 @@ async def main():
         except Exception as e:
             print(f"Error retrieving entries: {e}")
             await ctx.respond(f"Uh oh, something went wrong: {e}")
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
 
     # Epic context menu integration stuff (cool).
@@ -940,8 +927,7 @@ async def main():
         message: discord.Message
     ):
         print("(C) Decoding from Crypto.")
-        import crypto
-        message = crypto.decode_crypto(message.content)
+        message = Crypto.decode_crypto(message.content)
         await ctx.respond(content=message, ephemeral=True)
 
     # CONTEXT MENU: Submit quote
@@ -970,15 +956,13 @@ async def main():
 
             # Store quote in the database
             sql = f"INSERT INTO quotes (content, author, submitter_id) VALUES (%s, %s, %s)"
-            val = (clean_content, clean_uname, ctx.author.id)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (clean_content, clean_uname, ctx.author.id))
             mydb.commit()
 
             # Fetch ID of last upload.
             cursor.execute("SELECT LAST_INSERT_ID()")
             id = cursor.fetchone()[0]
             cursor.close()
-            mydb.close()
             
             await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{clean_content}\" - {clean_uname}*", ephemeral=True)
             print(f"Tip {id} submitted successfully!")
@@ -986,8 +970,8 @@ async def main():
         except Exception as e:
             print(f"Oh, fiddlesticks! What now... {e}?!")
             await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
     # CONTEXT MENU: Submit to archives
     @bot.message_command(
@@ -1047,16 +1031,14 @@ async def main():
 
             # Check if user exists in the DB
             sql = f"SELECT COUNT(*) FROM users WHERE id = %s"
-            val = (ctx.author.id,)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (ctx.author.id,))
             user_exists = cursor.fetchone()
             if not user_exists:
                 return await ctx.respond("We don't know anything about you!\nPlease use `/reaction` to get started!", ephemeral=True)
 
             # Get user reaction details
             sql = f"SELECT image, quote, audio FROM users WHERE id = %s"
-            val = (ctx.author.id,)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (ctx.author.id,))
 
             # Check if reaction exists
             result = cursor.fetchone()
@@ -1093,13 +1075,12 @@ async def main():
             await ctx.respond(embed=embed, files=files)
             print(f"(C) Reaction from {ctx.author.id} sent successfully!")
             cursor.close()
-            mydb.close()
 
         except Exception as e:
             print(f"Error retrieving reaction: {e}")
             await ctx.respond(f"Uh oh, something went wrong: {e}", ephemeral=True)
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
 
     # And accompanying SET REACTION command
@@ -1128,8 +1109,7 @@ async def main():
 
             # Check if user exists in the DB
             sql = f"SELECT COUNT(*) FROM users WHERE id = %s"
-            val = (ctx.author.id,)
-            cursor.execute(sql, val)
+            cursor.execute(sql, (ctx.author.id,))
             user_exists = cursor.fetchone()[0] > 0
 
             if user_exists:
@@ -1143,7 +1123,6 @@ async def main():
             cursor.execute(sql, val)
             mydb.commit()
             cursor.close()
-            mydb.close()
 
             await ctx.respond(content="Your reaction has been set successfully!", ephemeral=True)
             print(f"(C) Reaction for {ctx.author.id} set successfully!")
@@ -1151,8 +1130,8 @@ async def main():
         except Exception as e:
             print(f"Error setting reaction: {e}")
             await ctx.respond(f"Uh oh, something went wrong: {e}", ephemeral=True)
-            cursor.close()
-            mydb.close()
+            if cursor:
+                cursor.close()
 
 
 
@@ -1249,16 +1228,15 @@ async def main():
             cursor.execute("SELECT LAST_INSERT_ID()")
             upload_id = cursor.fetchone()[0]
             cursor.close()
-            mydb.close()
 
             # Prep response
             return None, False, comp_path, caption or None, upload_id
         
         except Exception as e:
             print(f"Oh god, what now... {e}?!")
-            cursor.close()
-            mydb.close()
-            return "Uh oh, something went wrong: {e}. Please try again.", True, None, None, None
+            if cursor:
+                cursor.close()
+            return f"Uh oh, something went wrong: {e}. Please try again.", True, None, None, None
 
     # MIDI Synthesis
     async def synthesize_midi(input):
@@ -1342,6 +1320,8 @@ async def main():
             # If you end up here, you should be very confused.
             print(f"Error recreating database: {err}")
             print("THIS MIGHT CAUSE WEIRD THINGS TO HAPPEN IF YOU DON'T FIX IT!!")
+            if cursor:
+                cursor.close()
 
     # Run a command on this machine.
     def runme(command):
@@ -1383,10 +1363,6 @@ async def main():
     # Convert RGB values to HEX because who the hell needs RGB values.
     def rgb2hex(r, g, b):
         return '#{:02x}{:02x}{:02x}'.format(r, g, b)
-
-    # Convert HEX back to RGB because I hate optimization.
-    def hex2rgb(hexcode):
-        return tuple(map(ord,hexcode[1:].decode('hex')))
 
     # Create neat embeds for items in the Stuffpile (TM).
     def prepare_embed(name, description, hexcode, fact, id, image):
