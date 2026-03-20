@@ -223,8 +223,8 @@ async def main():
 
             if upload_id == 0: # If they asked for a random upload.
                 # Count total images
-                sql = "SELECT COUNT(*) FROM %s"
-                cursor.execute(sql, (db,))
+                sql = f"SELECT COUNT(*) FROM {db}"
+                cursor.execute(sql)
                 total_images = cursor.fetchone()[0]
 
                 if not total_images:
@@ -235,10 +235,10 @@ async def main():
 
             # Get upload details
             if uncompressed:
-                sql = "SELECT original_path, caption FROM %s WHERE id = %s"
+                sql = f"SELECT original_path, caption FROM {db} WHERE id = %s"
             else:
-                sql = "SELECT path, caption FROM %s WHERE id = %s"
-            cursor.execute(sql, (db, upload_id,))
+                sql = f"SELECT path, caption FROM {db} WHERE id = %s"
+            cursor.execute(sql, (upload_id,))
 
             # Check if upload exists
             result = cursor.fetchone()
@@ -351,16 +351,16 @@ async def main():
 
             if id == 0: # If they asked for a random tip.
                 # Count total submissions
-                sql = "SELECT COUNT(*) FROM %s"
-                cursor.execute(sql, (db))
+                sql = f"SELECT COUNT(*) FROM {db}"
+                cursor.execute(sql)
                 total_submissions = cursor.fetchone()[0]
 
                 # Generate random number within submission count
                 id = random.randint(1, total_submissions)
 
             # Get submission
-            sql = "SELECT content, author FROM %s WHERE id = %s"
-            cursor.execute(sql, (db, id))
+            sql = f"SELECT content, author FROM {db} WHERE id = %s"
+            cursor.execute(sql, (id,))
 
             # Check if submission exists
             content, author = cursor.fetchone()
@@ -419,7 +419,7 @@ async def main():
                 await ctx.respond(content=f"Pool '{pool}' already exists! Please choose a different name.", ephemeral=True)
                 cursor.close()
                 print(f"Nevermind! {pool} already exists!")
-                return  
+                return
 
             # Create the pool in the database
             sql = "INSERT INTO pools (name, owner_id, visible) VALUES (%s, %s, %s)"
@@ -466,7 +466,7 @@ async def main():
                 cursor.close()
                 print(f"Nevermind! {pool} does not exist!")
                 return
-            
+
             # Check if the user is permitted to submit to this pool, or if it is public.
             cursor.execute(f"SELECT visible FROM pools WHERE name = {pool}")
             visible = cursor.fetchone()[0]
@@ -581,8 +581,8 @@ async def main():
 
             # Save the image.
             timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-            random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
-            filename = f"thing_{timestamp}_{random_suffix}_{image.filename}" 
+            random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4))
+            filename = f"thing_{timestamp}_{random_suffix}_{image.filename}"
             saved_path = f"{UPLOADS_FOLDER}/{filename}"
             jpeg_path = f"{UPLOADS_FOLDER}/{filename}.jpg"
             await image.save(saved_path)
@@ -665,7 +665,7 @@ async def main():
                     print("Finding submission no." + str(id) + "...")
                     sql = "SELECT id, name, description, fact, image, colour FROM stuff WHERE id = %s AND visible = true;"
                     cursor.execute(sql, (id,))
-                
+
                 id, name, description, fact, image, hexcode = cursor.fetchone()
             except Exception as e:
                 await ctx.respond(f"Submission with ID {id} not found!")
@@ -968,7 +968,7 @@ async def main():
             cursor.execute("SELECT LAST_INSERT_ID()")
             id = cursor.fetchone()[0]
             cursor.close()
-            
+
             await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{clean_content}\" - {clean_uname}*", ephemeral=True)
             print(f"Tip {id} submitted successfully!")
 
@@ -1024,7 +1024,7 @@ async def main():
 
         # This pulls the user's set image, quote, and audio from the DB and returns it as a reply.
         # Do note that users may have any combination of these set or unset.
-        
+
         try:
             # Connect to database
             try:
@@ -1225,7 +1225,7 @@ async def main():
 
             # Store file info in the database
             sql = f"INSERT INTO {db} (path, original_path, caption, submitter_id) VALUES (%s, %s, %s, %s)"
-            val = (comp_path, saved_path, caption.replace('"', '\"'), author_id)  
+            val = (comp_path, saved_path, caption.replace('"', '\"'), author_id)
             cursor.execute(sql, val)
             mydb.commit()
 
@@ -1236,7 +1236,7 @@ async def main():
 
             # Prep response
             return None, False, comp_path, caption or None, upload_id
-        
+
         except Exception as e:
             print(f"Oh god, what now... {e}?!")
             if cursor:
@@ -1267,9 +1267,9 @@ async def main():
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
 
         # Generate 4 random characters
-        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4)) 
+        random_suffix = ''.join(random.choice(string.ascii_letters) for _ in range(4))
 
-        filename = f"{timestamp}_{random_suffix}_{file.filename}" 
+        filename = f"{timestamp}_{random_suffix}_{file.filename}"
         saved_path = f"{UPLOADS_FOLDER}/{filename}"
         await file.save(saved_path)
         print("File saved!")
