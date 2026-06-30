@@ -27,8 +27,9 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $images = $stmt->fetchAll();
 ?>
-    <title>Images - Tohru Database</title>
+<title>Images - Tohru Database</title>
 </head>
+
 <body>
     <div class="container">
         <header>
@@ -55,12 +56,12 @@ $images = $stmt->fetchAll();
             <?php foreach ($images as $img): ?>
                 <div class="gallery-item" style="border-color: <?= e($img['colour']) ?>">
                     <div class="gallery-image">
-                        <img src="<?= e($basePath.$img['path']) ?>" alt="<?= e($img['caption']) ?>" loading="lazy">
+                        <a href="<? e($basePath . $img['original_path']) ?>" target="_blank"><img src="<?= e($basePath . $img['path']) ?>" alt="<?= e($img['caption']) ?>" loading="lazy"></a>
                     </div>
                     <div class="gallery-caption">
                         <p><?= e($img['caption']) ?></p>
                         <div class="meta-info">
-                            ID: <?= $img['id'] ?> | 
+                            ID: <?= $img['id'] ?> |
                             <?= date('Y-m-d', strtotime($img['submission_time'])) ?>
                             <?php if ($img['submitter_id']): ?>
                                 | By: <?= $img['submitter_id'] ?>
@@ -92,4 +93,5 @@ $images = $stmt->fetchAll();
         <?php endif; ?>
     </div>
 </body>
+
 </html>
