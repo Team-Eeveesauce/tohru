@@ -56,7 +56,7 @@ $images = $stmt->fetchAll();
             <?php foreach ($images as $img): ?>
                 <div class="gallery-item" style="border-color: <?= e($img['colour']) ?>">
                     <div class="gallery-image">
-                        <a href="<? e($basePath . $img['original_path']) ?>" target="_blank"><img src="<?= e($basePath . $img['path']) ?>" alt="<?= e($img['caption']) ?>" loading="lazy"></a>
+                        <a href="<?= e($basePath . $img['original_path']) ?>" target="_blank"><img src="<?= e($basePath . $img['path']) ?>" alt="<?= e($img['caption']) ?>" loading="lazy"></a>
                     </div>
                     <div class="gallery-caption">
                         <p><?= e($img['caption']) ?></p>
