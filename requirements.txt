@@ -10,4 +10,4 @@ pretty_midi
 soundfile
 setuptools
 pyfluidsynth
-audioop-lts; python_version < '3.14'
+audioop-lts; python_version>='3.13'
