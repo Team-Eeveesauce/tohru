@@ -28,12 +28,13 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $tips = $stmt->fetchAll();
 ?>
-    <title>Tips - Tohru Database</title>
+<title>Tips | TohruDB</title>
 </head>
+
 <body>
     <div class="container">
         <header>
-            <h1>💡 Tips</h1>
+            <h1>Tips</h1>
             <a href="<?php echo $basePath; ?>" class="back-link">← Back to Home</a>
         </header>
 
@@ -61,7 +62,7 @@ $tips = $stmt->fetchAll();
                     <div class="tip-meta">
                         <span class="author">— <?= e($tip['author']) ?></span>
                         <span class="meta-info">
-                            ID: <?= $tip['id'] ?> | 
+                            ID: <?= $tip['id'] ?> |
                             Submitted: <?= date('Y-m-d H:i', strtotime($tip['submission_time'])) ?>
                             <?php if ($tip['submitter_id']): ?>
                                 | By: <?= $tip['submitter_id'] ?>
@@ -93,4 +94,5 @@ $tips = $stmt->fetchAll();
         <?php endif; ?>
     </div>
 </body>
+
 </html>

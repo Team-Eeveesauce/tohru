@@ -1,13 +1,15 @@
-/* style.css - Main stylesheet */
+/* Everything */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-body {
+html {
+    color: white;
+    background: url(/pages/bkg.jpg) #192f77;
+    text-shadow: 2px 2px black;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: #333;
     color: #FFF;
     line-height: 1.6;
 }
@@ -21,20 +23,37 @@ body {
 /* Header */
 header,
 .search-bar {
-    background: #444;
+    background: black;
     padding: 30px;
-    border-radius: 6px;
+    text-decoration: none;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 30px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: solid 3px #3b3b40;
 }
 
-header h1 {
+/* Header texts */
+h1 {
     color: #f76d15;
     margin-bottom: 10px;
 }
 
-header p {
-    color: #666;
+h3 {
+    margin-bottom: 15px;
+}
+
+.stuff-header h3 {
+    margin: 0;
+}
+
+.nav-card h3 {
+    color: #f76d15;
+    margin-bottom: 10px;
+}
+
+
+
+p {
+    color: white;
 }
 
 .back-link {
@@ -61,14 +80,12 @@ header p {
 }
 
 .nav-card {
-    background: #fff;
+    background: black;
     padding: 30px;
-    border-radius: 8px;
     text-decoration: none;
-    color: #333;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s, box-shadow 0.2s;
-    border-left: 4px solid #f76d15;
+    border: solid 3px #3b3b40;
 }
 
 .nav-card:hover {
@@ -76,13 +93,8 @@ header p {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
-.nav-card h3 {
-    color: #f76d15;
-    margin-bottom: 10px;
-}
-
 .nav-card p {
-    color: #666;
+    color: #DDD;
     font-size: 14px;
 }
 
@@ -164,7 +176,8 @@ header p {
 }
 
 .item-card {
-    background: #fff;
+    background: #131313;
+    color: white;
     padding: 25px;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
@@ -194,7 +207,6 @@ header p {
 /* Tip Cards */
 .tip-card .tip-content p {
     font-size: 16px;
-    color: #333;
     margin-bottom: 15px;
     line-height: 1.8;
 }
@@ -229,11 +241,6 @@ header p {
     gap: 10px;
 }
 
-.stuff-header h3 {
-    color: #333;
-    margin: 0;
-}
-
 .type-badge {
     padding: 5px 12px;
     border-radius: 20px;
@@ -243,7 +250,6 @@ header p {
 
 .description {
     margin-bottom: 10px;
-    color: #555;
 }
 
 .fact {
@@ -252,61 +258,12 @@ header p {
     background: #f9f9f9;
     border-radius: 4px;
     font-size: 14px;
-    color: #555;
 }
 
 /* Audio Cards */
-.audio-card h3 {
-    margin-bottom: 15px;
-    color: #333;
-}
 
 .audio-card audio {
     width: 100%;
-    margin-bottom: 15px;
-}
-
-/* Pool Cards */
-.pool-card .pool-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.pool-card h3 {
-    margin: 0;
-}
-
-.pool-card h3 a {
-    color: #f76d15;
-    text-decoration: none;
-}
-
-.pool-card h3 a:hover {
-    text-decoration: underline;
-}
-
-.item-count {
-    background: #f76d15;
-    color: #fff;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.pool-info {
-    background: #fff;
-    padding: 15px 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-}
-
-.pool-content-card .content-display p {
-    font-size: 16px;
-    color: #333;
     margin-bottom: 15px;
 }
 

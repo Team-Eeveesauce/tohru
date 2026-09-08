@@ -27,13 +27,13 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $images = $stmt->fetchAll();
 ?>
-<title>Images - Tohru Database</title>
+<title>Images | TohruDB</title>
 </head>
 
 <body>
     <div class="container">
         <header>
-            <h1>🖼️ Image Archives</h1>
+            <h1>Image Archives</h1>
             <a href="<?php echo $basePath; ?>" class="back-link">← Back to Home</a>
         </header>
 

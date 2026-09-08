@@ -6,10 +6,21 @@
   Header set Cache-Control "max-age=100000, public"
 </FilesMatch>
 
-<FilesMatch ".(bak)$">
+<FilesMatch ".(bak|md|env|template|dockerignore|gitattributes|gitignore|htaccess)$">
   Require all denied
 </FilesMatch>
 
-<FilesMatch "^\.dockerignore|.env|.gitattributes|.gitignore|docker-compose.yaml|Dockerfile|init.sql|tohru.py">
+<FilesMatch "docker-compose.yaml|Dockerfile|init.sql|tohru.py">
   Require all denied
 </FilesMatch>
+
+# Banish everyone from everything except for like two folders.
+RewriteEngine On
+RewriteRule ^.git/?$ - [F,L]
+RewriteRule ^.venv/?$ - [F,L]
+RewriteRule ^.vscode/?$ - [F,L]
+RewriteRule ^__pycache__/?$ - [F,L]
+RewriteRule ^cogs/?$ - [F,L]
+RewriteRule ^pages/?$ - [F,L]
+RewriteRule ^utils/?$ - [F,L]
+

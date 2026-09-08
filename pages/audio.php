@@ -27,12 +27,13 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $audios = $stmt->fetchAll();
 ?>
-    <title>Audio - Tohru Database</title>
+<title>Audio | TohruDB</title>
 </head>
+
 <body>
     <div class="container">
         <header>
-            <h1>🔊 Audio Archives</h1>
+            <h1>Audio Archives</h1>
             <a href="<?php echo $basePath; ?>" class="back-link">← Back to Home</a>
         </header>
 
@@ -57,11 +58,11 @@ $audios = $stmt->fetchAll();
                     <div class="audio-content">
                         <h3><?= e($audio['caption']) ?></h3>
                         <audio controls preload="none">
-                            <source src="<?= e($basePath.$audio['path']) ?>" type="audio/mpeg">
+                            <source src="<?= e($basePath . $audio['path']) ?>" type="audio/mpeg">
                             Your browser does not support the audio element.
                         </audio>
                         <div class="meta-info">
-                            ID: <?= $audio['id'] ?> | 
+                            ID: <?= $audio['id'] ?> |
                             Submitted: <?= date('Y-m-d H:i', strtotime($audio['submission_time'])) ?>
                             <?php if ($audio['submitter_id']): ?>
                                 | By: <?= $audio['submitter_id'] ?>
@@ -93,4 +94,5 @@ $audios = $stmt->fetchAll();
         <?php endif; ?>
     </div>
 </body>
+
 </html>

@@ -39,12 +39,13 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $items = $stmt->fetchAll();
 ?>
-    <title>Stuff - Tohru Database</title>
+<title>Stuff | TohruDB</title>
 </head>
+
 <body>
     <div class="container">
         <header>
-            <h1>📦 Stuff</h1>
+            <h1>Stuff</h1>
             <a href="." class="back-link">← Back to Home</a>
         </header>
 
@@ -71,10 +72,10 @@ $items = $stmt->fetchAll();
 
         <div class="items-list">
             <?php foreach ($items as $item): ?>
-                <div class="item-card stuff-card" style="border-left: 4px solid <?= e($item['colour']) ?>">
+                <div class="item-card stuff-card" style="border: 4px solid <?= e($item['colour']) ?>">
                     <?php if ($item['image']): ?>
                         <div class="stuff-image">
-                            <img src="<?= e($basePath.'uploads/'.$item['image']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
+                            <img src="<?= e($basePath . 'uploads/' . $item['image']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
                         </div>
                     <?php endif; ?>
                     <div class="stuff-content">
@@ -89,7 +90,7 @@ $items = $stmt->fetchAll();
                             <p class="fact"><strong>Fact:</strong> <?= e($item['fact']) ?></p>
                         <?php endif; ?>
                         <div class="meta-info">
-                            ID: <?= $item['id'] ?> | 
+                            ID: <?= $item['id'] ?> |
                             Submitted: <?= date('Y-m-d H:i', strtotime($item['submission_time'])) ?>
                             | By: <?= $item['submitter_id'] ?>
                         </div>
@@ -104,13 +105,13 @@ $items = $stmt->fetchAll();
 
         <?php if ($pagination['totalPages'] > 1): ?>
             <div class="pagination">
-                <?php 
+                <?php
                 $queryParams = [];
                 if ($search) $queryParams[] = 'search=' . urlencode($search);
                 if ($type) $queryParams[] = 'type=' . urlencode($type);
                 $queryString = $queryParams ? '&' . implode('&', $queryParams) : '';
                 ?>
-                
+
                 <?php if ($page > 1): ?>
                     <a href="?i=stuff&page=1<?= $queryString ?>">&laquo; First</a>
                     <a href="?i=stuff&page=<?= $page - 1 ?><?= $queryString ?>">Previous</a>
@@ -126,4 +127,5 @@ $items = $stmt->fetchAll();
         <?php endif; ?>
     </div>
 </body>
+
 </html>

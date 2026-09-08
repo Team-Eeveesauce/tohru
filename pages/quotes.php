@@ -32,12 +32,13 @@ $stmt = $pdo->prepare("
 $stmt->execute($params);
 $quotes = $stmt->fetchAll();
 ?>
-    <title>Quotes - Tohru Database</title>
+<title>Quotes | TohruDB</title>
 </head>
+
 <body>
     <div class="container">
         <header>
-            <h1>💬 Quotes</h1>
+            <h1>Quotes</h1>
             <a href="<?php echo $basePath; ?>" class="back-link">← Back to Home</a>
         </header>
 
@@ -65,7 +66,7 @@ $quotes = $stmt->fetchAll();
                     <div class="quote-meta">
                         <span class="author">— <?= e($quote['author']) ?></span>
                         <span class="meta-info">
-                            ID: <?= $quote['id'] ?> | 
+                            ID: <?= $quote['id'] ?> |
                             Submitted: <?= date('Y-m-d H:i', strtotime($quote['submission_time'])) ?>
                             <?php if ($quote['submitter_id']): ?>
                                 | By: <?= $quote['submitter_id'] ?>
@@ -97,4 +98,5 @@ $quotes = $stmt->fetchAll();
         <?php endif; ?>
     </div>
 </body>
+
 </html>
