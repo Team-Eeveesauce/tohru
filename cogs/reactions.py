@@ -1,58 +1,17 @@
+# standard discord bs
 import discord
 from discord.ext import commands
 from discord import Option
-from utils.tohrudb import reconnect_to_db
+
+import utils.tohrudb
 import mysql
 
-class ContextMenu(commands.Cog):
+class Reactions(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.mydb = utils.tohrudb.get_db()
 
     # Epic context menu integration stuff (cool).
-
-    # CONTEXT MENU: Submit quote
-    @commands.message_command(
-        name="Submit Quote",
-        integration_types=[discord.IntegrationType.user_install]
-    )
-    async def context_quote(
-        self,
-        ctx: discord.ApplicationContext,
-        message: discord.Message
-    ):
-        print("(C) Submitting quote to DB.")
-
-        # Get this guys stuff
-        clean_content = message.content.replace('"', '\"')
-        clean_uname = message.author.name.replace('"', '\"')
-
-        try:
-            # Connect to database.
-            try:
-                cursor = self.mydb.cursor()
-            except mysql.connector.Error as err:
-                print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
-                cursor = self.mydb.cursor()
-
-            # Store quote in the database
-            sql = f"INSERT INTO quotes (content, author, submitter_id) VALUES (%s, %s, %s)"
-            cursor.execute(sql, (clean_content, clean_uname, ctx.author.id))
-            self.mydb.commit()
-
-            # Fetch ID of last upload.
-            cursor.execute("SELECT LAST_INSERT_ID()")
-            id = cursor.fetchone()[0]
-            cursor.close()
-
-            await ctx.respond(content=f"Your submission has been saved! ID: {id}\n> *\"{clean_content}\" - {clean_uname}*", ephemeral=True)
-            print(f"Tip {id} submitted successfully!")
-
-        except Exception as e:
-            print(f"Oh, fiddlesticks! What now... {e}?!")
-            await ctx.respond(content=f"Uh oh, something went wrong: {e}. Please try again.", ephemeral=True)
-            if cursor:
-                cursor.close()
 
     # CONTEXT MENU: Reaction
     @commands.message_command(
@@ -76,7 +35,7 @@ class ContextMenu(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Check if user exists in the DB
@@ -155,7 +114,7 @@ class ContextMenu(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Check if user exists in the DB
@@ -185,4 +144,4 @@ class ContextMenu(commands.Cog):
                 cursor.close()
 
 def setup(bot):
-    bot.add_cog(ContextMenu(bot))
+    bot.add_cog(Reactions(bot))

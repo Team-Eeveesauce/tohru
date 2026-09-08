@@ -1,22 +1,26 @@
+# standard discord bs
 import discord
 from discord.ext import commands
 from discord import Option
+
 
 from pydub import AudioSegment # pip install pydub
 import pretty_midi
 import soundfile as sf
 import filetype # pip install filetype
-from utils.tohrudb import reconnect_to_db
+import utils.tohrudb
 import mysql
 import random
 import string
 from datetime import datetime
 from wand.image import Image as MagickImage
+import os
 
 class Archives(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.mydb = ...
+        self.mydb = utils.tohrudb.get_db()
+        self.UPLOADS_FOLDER = os.getenv('UPLOADS_FOLDER')
 
     # Commands involving the archives system.
     archives = discord.SlashCommandGroup(
@@ -31,6 +35,7 @@ class Archives(commands.Cog):
         description="Upload an image or audio file to be horribly compressed."
     )
     async def archives_upload(
+        self,
         ctx: discord.ApplicationContext, 
         file: Option(discord.Attachment, "Choose a file to upload", required=True),  # type: ignore
         caption: Option(str, "Add a caption/title to help identify the upload!", required=False) = ""  # type: ignore
@@ -38,7 +43,7 @@ class Archives(commands.Cog):
         print("Upload command called!")
         await ctx.defer(ephemeral=False)
 
-        response, error, comp_path, caption, upload_id = await Archives.submit_to_archives(file, caption, ctx.author.id)
+        response, error, comp_path, caption, upload_id = await Archives.submit_to_archives(self, file, caption, ctx.author.id)
         
         # If it's gone oh so horribly wrong, break the bad news.
         if error:
@@ -77,7 +82,7 @@ class Archives(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             if upload_id == 0: # If they asked for a random upload.
@@ -127,6 +132,7 @@ class Archives(commands.Cog):
         integration_types=[discord.IntegrationType.user_install]
     )
     async def context_archive(
+        self,
         ctx: discord.ApplicationContext,
         message: discord.Message
     ):
@@ -139,7 +145,7 @@ class Archives(commands.Cog):
             await ctx.respond(content="No attachments found.", ephemeral=True)
             return
 
-        response, error, comp_path, caption, upload_id = await Archives.submit_to_archives(attachment, message.content or "(C) No caption provided.", ctx.author.id)
+        response, error, comp_path, caption, upload_id = await Archives.submit_to_archives(self, attachment, message.content or "(C) No caption provided.", ctx.author.id)
         
         # If it's gone oh so horribly wrong, break the bad news.
         if error:
@@ -159,7 +165,7 @@ class Archives(commands.Cog):
     # Submit to archives!
     async def submit_to_archives(self, file, caption, author_id):
         try:
-            saved_path, filename = await Archives.download_file(file)
+            saved_path, filename = await Archives.download_file(self, file)
 
             # Determine whether it's an image, audio, or neither.
             kind = filetype.guess(saved_path)
@@ -192,7 +198,7 @@ class Archives(commands.Cog):
                     if mime_type == "audio/midi" or mime_type == "audio/x-midi":
                         # Aw sweet let's go render us some midis
                         midi = True
-                        saved_path = await Archives.synthesize_midi(saved_path)
+                        saved_path = await Archives.synthesize_midi(self, saved_path)
                         if not saved_path:
                             return False
                     else:
@@ -233,7 +239,7 @@ class Archives(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Store file info in the database
@@ -288,6 +294,73 @@ class Archives(commands.Cog):
         output = input + ".wav"
         sf.write(output, audio, 44100)
         return input # this is not a mistake; when requesting the original version of the file, it should return the midi, not the intermediate wav.
+
+    @archives.command(
+        name="reprocess",
+        description="Will reprocess an MP3 that's been uploaded, provided the original file still exists.",
+        guild_ids=[os.getenv("GUILD_ID")]
+    )
+    async def reencode(
+        self,
+        ctx: discord.ApplicationContext,
+        upload_id: Option(int, "The archives_audio ID to be re-encoded.", required=True) #type: ignore
+    ):
+        print("Re-encoding an audio upload...")
+        await ctx.defer(ephemeral=True)
+
+        try:
+            # Connect to database
+            try:
+                cursor = self.mydb.cursor()
+            except mysql.connector.Error as err:
+                print(f"Error connecting to DB: {err}")
+                utils.tohrudb.reconnect_to_db(self.mydb)
+                cursor = self.mydb.cursor()
+
+            # Get upload details
+            sql = f"SELECT original_path FROM archives_audio WHERE id = %s"
+            cursor.execute(sql, (upload_id,))
+
+            # Check if upload exists
+            result = cursor.fetchone()
+            if not result:
+                return await ctx.respond(f"Upload with ID {upload_id} not found!")
+
+            original_path = result[0]
+            print(f"Retrieved original path from DB: {original_path}")
+
+            if not os.path.isfile(original_path):
+                return await ctx.respond(f"The original file for upload ID {upload_id} could not be found at {original_path}.")
+
+            # Re-encode the audio
+            try:
+                audio = AudioSegment.from_file(original_path)
+
+                # Crunch the audio for maximum effect!
+                audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
+
+                out_path = f"{original_path}_R.mp3"
+                out_ = audio.export(out_path, format="mp3", bitrate="64k")
+                out_.close()
+
+                print("Audio re-encoded at 64kbps MP3!")
+            except Exception as e:
+                print(f"Audio NOT re-encoded! {e}")
+                return await ctx.respond(content="Something went wrong reprocessing the audio. This task has NOT been completed.")
+
+            # Update database with new path
+            sql = f"UPDATE archives_audio SET path = %s WHERE id = %s"
+            cursor.execute(sql, (out_path, upload_id))
+            self.mydb.commit()
+            cursor.close()
+
+            await ctx.respond(content=f"Upload ID {upload_id} has been successfully re-encoded!", file=discord.File(out_path))
+            print(f"Archives ID {upload_id} re-encoded successfully!")
+
+        except Exception as e:
+            print(f"Error during re-encode: {e}")
+            if cursor:
+                cursor.close()
 
 def setup(bot):
     bot.add_cog(Archives(bot))

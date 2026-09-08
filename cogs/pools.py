@@ -1,13 +1,16 @@
+# standard discord bs
 import discord
 from discord.ext import commands
 from discord import Option
+
 import mysql
-from utils.paginator import Paginator
-from utils.tohrudb import reconnect_to_db
+import utils.tohrudb
+import utils.paginator
 
 class Pools(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.mydb = utils.tohrudb.get_db()
 
     # Commands involving the pool system.
     pool = discord.SlashCommandGroup (
@@ -36,7 +39,7 @@ class Pools(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Check if the pool already exists
@@ -83,7 +86,7 @@ class Pools(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Check if the pool exists
@@ -140,7 +143,7 @@ class Pools(commands.Cog):
         ):
         try:
             # It'll freak out if we don't do this.
-            reconnect_to_db(self.mydb)
+            utils.tohrudb.reconnect_to_db(self.mydb)
             cursor = self.mydb.cursor()
             command = ""
 
@@ -166,7 +169,7 @@ class Pools(commands.Cog):
                 return await ctx.respond("No entries found in the pools database.")
 
             # Display that stuff!
-            paginator = Paginator(entries)
+            paginator = utils.paginator.Paginator(entries)
             paginator.ctx = ctx
             paginator.message = await ctx.respond(embed=paginator.create_embed(), view=paginator)
 

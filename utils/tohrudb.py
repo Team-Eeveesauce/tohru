@@ -14,13 +14,9 @@ def get_db():
 
 def reconnect_to_db(mydb):
     try:
+        print("Reconnecting to DB...")
         # Attempt to connect to our database.
-        mydb = mysql.connector.connect(
-            host=os.getenv('DB_HOST'),
-            user=os.getenv('DB_USER'),
-            password=os.getenv('DB_PASSWORD'),
-            database=os.getenv('DB_NAME')
-        )
+        mydb = get_db()
 
         # Check if our tables exist.
         cursor = mydb.cursor()

@@ -1,19 +1,23 @@
+# standard discord bs
 import discord
 from discord.ext import commands
 from discord import Option
-from utils.tohrudb import reconnect_to_db
+
+import utils.tohrudb
 from colorthief import ColorThief
 from PIL import ImageColor
 from wand.image import Image as MagickImage
 import mysql
-import datetime
+from datetime import datetime
 import random
 import string
-
+import os
 
 class Stuffpile(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.mydb = utils.tohrudb.get_db()
+        self.UPLOADS_FOLDER = os.getenv('UPLOADS_FOLDER')
 
     # Commands involving the Stuffpile (TM).
     stuff = discord.SlashCommandGroup(
@@ -45,7 +49,7 @@ class Stuffpile(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Save the image.
@@ -114,7 +118,7 @@ class Stuffpile(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             try:
@@ -178,7 +182,7 @@ class Stuffpile(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
+                utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Verify that the submission exists, because it would be terrible if it didn't.

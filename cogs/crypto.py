@@ -1,6 +1,8 @@
+# standard discord bs
 import discord
 from discord.ext import commands
 from discord import Option
+
 
 class Crypto(commands.Cog):
     def __init__(self, bot):
@@ -19,6 +21,7 @@ class Crypto(commands.Cog):
         description="Encode something to Crypto code."
     )
     async def crypto_encode(
+        self,
         ctx: discord.ApplicationContext,
         content: Option(str, "Your message here!", required=True, max_length=333)  # type: ignore
     ):
@@ -32,6 +35,7 @@ class Crypto(commands.Cog):
         description="Decode something from Crypto code."
     )
     async def crypto_decode(
+        self,
         ctx: discord.ApplicationContext,
         content: Option(str, "Crypto code here!", required=True)  # type: ignore
     ):
@@ -45,6 +49,7 @@ class Crypto(commands.Cog):
         integration_types=[discord.IntegrationType.user_install]
     )
     async def context_decode(
+        self,
         ctx: discord.ApplicationContext,
         message: discord.Message
     ):

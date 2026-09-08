@@ -37,11 +37,13 @@ import discord  # pip install pycord
 from discord.ext import commands
 from discord import Option
 
+# useless things
 import mysql
 from pydub import AudioSegment
 
-import utils
-from utils.tohrudb import get_db, reconnect_to_db
+# useful things
+import utils.tohrudb
+import utils.paginator
 
 # Intents because we need them apparently
 intents = discord.Intents.default()
@@ -54,7 +56,6 @@ GUILD_ID = os.getenv('GUILD_ID')
 KANNA_IP = os.getenv('KANNA_IP')
 PORT = int(os.getenv('PORT'))
 SOUNDFONT = os.getenv('SOUNDFONT')
-UPLOADS_FOLDER = os.getenv('UPLOADS_FOLDER')
 TIMEOUT = 5
 
 global mydb
@@ -63,6 +64,7 @@ global mydb
 async def main():
     print("Winding up...")
     bot = commands.Bot(intents=intents)
+    mydb = utils.tohrudb.get_db()
 
     # Load all the other moduldes that were split off.
     for filename in os.listdir("./cogs"):
@@ -89,73 +91,6 @@ async def main():
         await asyncio.sleep(1)
         self.mydb.disconnect()
         exit(1)
-
-    @maintenance.command(
-        name="reprocess",
-        description="Will reprocess an MP3 that's been uploaded, provided the original file still exists.",
-        guild_ids=[GUILD_ID]
-    )
-    async def reencode(
-        self,
-        ctx: discord.ApplicationContext,
-        upload_id: Option(int, "The archives_audio ID to be re-encoded.", required=True) #type: ignore
-    ):
-        print("Re-encoding an audio upload...")
-        await ctx.defer(ephemeral=True)
-
-        try:
-            # Connect to database
-            try:
-                cursor = self.mydb.cursor()
-            except mysql.connector.Error as err:
-                print(f"Error connecting to DB: {err}")
-                reconnect_to_db(self.mydb)
-                cursor = self.mydb.cursor()
-
-            # Get upload details
-            sql = f"SELECT original_path FROM archives_audio WHERE id = %s"
-            cursor.execute(sql, (upload_id,))
-
-            # Check if upload exists
-            result = cursor.fetchone()
-            if not result:
-                return await ctx.respond(f"Upload with ID {upload_id} not found!")
-
-            original_path = result[0]
-            print(f"Retrieved original path from DB: {original_path}")
-
-            if not os.path.isfile(original_path):
-                return await ctx.respond(f"The original file for upload ID {upload_id} could not be found at {original_path}.")
-
-            # Re-encode the audio
-            try:
-                audio = AudioSegment.from_file(original_path)
-
-                # Crunch the audio for maximum effect!
-                audio = audio.set_channels(1).set_frame_rate(22050)  # 22.05kHz sample rate
-
-                out_path = f"{original_path}_R.mp3"
-                out_ = audio.export(out_path, format="mp3", bitrate="64k")
-                out_.close()
-
-                print("Audio re-encoded at 64kbps MP3!")
-            except Exception as e:
-                print(f"Audio NOT re-encoded! {e}")
-                return await ctx.respond(content="Something went wrong reprocessing the audio. This task has NOT been completed.")
-
-            # Update database with new path
-            sql = f"UPDATE archives_audio SET path = %s WHERE id = %s"
-            cursor.execute(sql, (out_path, upload_id))
-            self.mydb.commit()
-            cursor.close()
-
-            await ctx.respond(content=f"Upload ID {upload_id} has been successfully re-encoded!", file=discord.File(out_path))
-            print(f"Archives ID {upload_id} re-encoded successfully!")
-
-        except Exception as e:
-            print(f"Error during re-encode: {e}")
-            if cursor:
-                cursor.close()
 
     # Check if we're live.
     @maintenance.command(
@@ -186,15 +121,14 @@ async def main():
         description="Print a Table of Contents for items in the archives/stuffpile.",
         integration_types=[discord.IntegrationType.user_install, discord.IntegrationType.guild_install])
     async def index(
-        self,
         ctx: discord.ApplicationContext,
         db: Option(str, "The database to view.", choices={'archives_image', 'archives_audio', 'stuff'}, required=True),  # type: ignore
         user: Option(discord.User, "The user to view entries for.", required=False)  # type: ignore
         ):
         try:
             # It'll freak out if we don't do this.
-            utils.tohrudb.reconnect_to_db(self.mydb)
-            cursor = self.mydb.cursor()
+            utils.tohrudb.reconnect_to_db(mydb)
+            cursor = mydb.cursor()
             command = ""
 
             print(f"Index command called for {db}...")
@@ -275,8 +209,8 @@ async def main():
 
     # Just wait a moment for the DB to kick in...
     await asyncio.sleep(5)
-    mydb = get_db()
-    reconnect_to_db(mydb)
+    print("Connecting to DB...")
+    utils.tohrudb.reconnect_to_db(mydb)
 
     # And now we run it!
     print("Connecting to Discord...")
