@@ -54,7 +54,7 @@ $audios = $stmt->fetchAll();
 
         <div class="items-list">
             <?php foreach ($audios as $audio): ?>
-                <div class="item-card audio-card" style="border-left: 4px solid <?= e($audio['colour']) ?>">
+                <div class="item-card audio-card">
                     <div class="audio-content">
                         <h3><?= e($audio['caption']) ?></h3>
                         <audio controls preload="none">
@@ -67,6 +67,7 @@ $audios = $stmt->fetchAll();
                             <?php if ($audio['submitter_id']): ?>
                                 | By: <?= $audio['submitter_id'] ?>
                             <?php endif; ?>
+                            | <a target="_blank" href="<?= e($basePath . $audio['original_path']) ?>">Download original</a>
                         </div>
                     </div>
                 </div>
