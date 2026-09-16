@@ -333,7 +333,7 @@ p {
     gap: 10px;
     margin-top: 30px;
     padding: 20px;
-    background: #fff;
+    background: #000;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     flex-wrap: wrap;
@@ -356,7 +356,7 @@ p {
 
 .page-info {
     padding: 8px 16px;
-    color: #666;
+    color: #e1e1e1;
     font-weight: 500;
 }
 
