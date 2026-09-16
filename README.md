@@ -72,5 +72,5 @@ Alternatively, the Docker container can be configured to run whenever Docker is 
 **Q.** How do I moderate whatever enters the database?  
 **A.** There's an Update command for the Stuffpile, but everyone can access that. You'll just have to plunge into the database itself with HeidiSQL or phpMyAdmin, whatever suits you.
 
-**Q.** Uploading is broken.
-**A.** Try creating the upload folder and giving it permissions.
+**Q.** Uploading is broken.  
+**A.** No it isn't. Try creating the upload folder and giving it appropriate permissions.
