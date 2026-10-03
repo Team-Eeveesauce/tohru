@@ -82,7 +82,7 @@ class Archives(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             if upload_id == 0: # If they asked for a random upload.
@@ -239,7 +239,7 @@ class Archives(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Store file info in the database
@@ -314,7 +314,7 @@ class Archives(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Get upload details

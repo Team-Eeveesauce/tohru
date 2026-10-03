@@ -39,7 +39,7 @@ class Pools(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Check if the pool already exists
@@ -86,7 +86,7 @@ class Pools(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Check if the pool exists
@@ -143,7 +143,7 @@ class Pools(commands.Cog):
         ):
         try:
             # It'll freak out if we don't do this.
-            utils.tohrudb.reconnect_to_db(self.mydb)
+            self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
             cursor = self.mydb.cursor()
             command = ""
 

@@ -45,7 +45,7 @@ class Tips(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Store tip in the database
@@ -97,7 +97,7 @@ class Tips(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             if id == 0: # If they asked for a random tip.
@@ -154,7 +154,7 @@ class Tips(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Store quote in the database

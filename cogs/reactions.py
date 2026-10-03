@@ -35,7 +35,7 @@ class Reactions(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Check if user exists in the DB
@@ -114,7 +114,7 @@ class Reactions(commands.Cog):
                 cursor = self.mydb.cursor()
             except mysql.connector.Error as err:
                 print(f"Error connecting to DB: {err}")
-                utils.tohrudb.reconnect_to_db(self.mydb)
+                self.mydb = utils.tohrudb.reconnect_to_db(self.mydb)
                 cursor = self.mydb.cursor()
 
             # Check if user exists in the DB

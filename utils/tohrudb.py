@@ -27,6 +27,7 @@ def reconnect_to_db(mydb):
             init_db(mydb)
         cursor.close()
         print("Connected to database!")
+        return mydb
 
     # But if anything were to go very wrong...
     except mysql.connector.Error as err:
